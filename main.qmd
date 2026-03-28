@@ -1,0 +1,15 @@
+---
+title: "main"
+format: html
+---
+The data are from 1/28/2019 to 3/28/2026
+split the data before November 30, 2022 (the publish of chatGPT) and after
+```{r}
+data <- read.csv("XLK ETF Stock Price History.csv")
+```
+
+## EDA 
+- check if data is white noise, or MA, or AR
+
+## Price and Date
+
