@@ -9,6 +9,9 @@ library("ggplot2")
 library("dplyr")
 ```
 
+# Section 1. Data Collection
+
+# Section 2. Data Cleaning
 The data are from 1/28/2019 to 3/28/2026
 split the data before November 30, 2022 (the publish of chatGPT) and after
 ```{r}
@@ -30,7 +33,11 @@ before_data <- data[data$Date < cutoff, ]
 after_data  <- data[data$Date >= cutoff, ]
 ```
 
-## EDA 
+# Section 3 Analytic Methods 
+## regression model
+### model assumption check
+
+## detrend 
 - check if data is white noise, or MA, or AR
 ```{r}
 plot(data$Date, data$Price, type = "l")
@@ -43,12 +50,16 @@ plot(after_data$Date, after_data$Price, type = "l", col = "blue")
 ```
 ```{r}
 #detrend
-model_data <- data(x= Date, y= Price)
-fit <- lm(x~y, data = data)
-summary(fit)$coefficients
+model_data <- data.frame(
+  t = 1:nrow(data),
+  y = data$Price
+)
 
+fit <- lm(y ~ t, data = model_data)
 
 ```
 
+## forecasting 
 
+# Section 4
 
