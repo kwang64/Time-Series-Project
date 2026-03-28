@@ -2,14 +2,53 @@
 title: "main"
 format: html
 ---
+```{r}
+#packages
+library("tidyverse")
+library("ggplot2")
+library("dplyr")
+```
+
 The data are from 1/28/2019 to 3/28/2026
 split the data before November 30, 2022 (the publish of chatGPT) and after
 ```{r}
+#load data
 data <- read.csv("XLK ETF Stock Price History.csv")
+```
+
+```{r}
+# change date 
+data$Date <- as.Date(data$Date, format = "%m/%d/%Y") 
+data <- data |>
+  filter(trimws(Vol.) != "")
+```
+
+```{r}
+#split into two time frames
+cutoff <- as.Date("2022-11-30")
+before_data <- data[data$Date < cutoff, ]
+after_data  <- data[data$Date >= cutoff, ]
 ```
 
 ## EDA 
 - check if data is white noise, or MA, or AR
+```{r}
+plot(data$Date, data$Price, type = "l")
+```
 
-## Price and Date
+```{r}
+par(mfrow = c(2,2))
+plot(before_data$Date, before_data$Price, type = "l")
+plot(after_data$Date, after_data$Price, type = "l", col = "blue")
+```
+```{r}
+#detrend
+model_data <- data(x= Date, y= Price)
+fit <- lm(x~y, data = data)
+summary(fit)$coefficients
+
+
+```
+
+
 
