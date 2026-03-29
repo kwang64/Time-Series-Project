@@ -1,8 +1,8 @@
 ---
 title: "main"
-format: html
+format: pdf
 ---
-```{r}
+```{r, include=FALSE}
 #packages
 library("tidyverse")
 library("ggplot2")
@@ -10,23 +10,28 @@ library("dplyr")
 ```
 
 # Section 1. Data Collection
+The data are from 1/28/2019 to 3/28/2026. 
 
-# Section 2. Data Cleaning
-The data are from 1/28/2019 to 3/28/2026
-split the data before November 30, 2022 (the publish of chatGPT) and after
-```{r}
+
+# Section 2. Variable Creation and Data Cleaning
+Original dataset contains date as a character which may cause problems when using it as our time predictor, so we converted to the Date type in R. 
+We observed outliers that are doubled the price of the remaining data points. Looking at the data, we found that for most weekends, prices are carried over from the Friday of the same week. These outliers correspond to weekend days, as indicated by their dates, and their volumes are recorded as empty strings. We decided to remove these outliers because they are not consistent with the general pattern, which they doubled the Friday price. 
+Lastly, we split the dataset into two groups using November 30, 2022 (the release date of ChatGPT) as the cutoff. This is used for the comparison of the two time seires.
+
+We will detrend the data (and difference) the data to remove the overall growth in the stock market and possible market cycles. 
+```{r, include=FALSE}
 #load data
 data <- read.csv("XLK ETF Stock Price History.csv")
 ```
 
-```{r}
+```{r, include=FALSE}
 # change date 
 data$Date <- as.Date(data$Date, format = "%m/%d/%Y") 
 data <- data |>
   filter(trimws(Vol.) != "")
 ```
 
-```{r}
+```{r, include=FALSE}
 #split into two time frames
 cutoff <- as.Date("2022-11-30")
 before_data <- data[data$Date < cutoff, ]
