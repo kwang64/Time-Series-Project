@@ -11,7 +11,23 @@ library("knitr")
 ```
 
 # Section 1. Data Collection
-The data are from 1/28/2019 to 3/28/2026. 
+The XLK stock price we are looking at is accounted by S&P Dow Jones Indices and State Street Global Advisory. S&P Dow Jones Indices is in charge of creating the company benchmark on entering the technology company stock pool; while the State Street Global Advisors selected particular stocks into the combination of the XLK stock. The data we are using is collected from the investing.com website, a financial data platform that provides public real-time market data directly from stock exchanges such as the NYSE and NASDAQ. The primary purpose of collecting the data is to provide a transparent record of the performance of the Technology Selected Sector Index. The subjects of this data series are the large-cap U.S. technology companies such as  Microsoft, NVIDIA, and Apple whose market valuations and returns constitute the movement of the XLK fund.
+
+The variables we are using includes: 
+
+- Date: The specific trading day of the observed data
+
+- Price (Close): The final price at which the ETF traded when the stock exchange closed (typically 4:00 PM EST).
+
+- Open:  The price of the very first transaction when the market opened (9:30 AM EST).
+
+- High & Low: The maximum and minimum prices reached during the trading session.
+
+- Vol.: The total number of shares traded during the day (e.g., 15.90M means 15.9 million shares).
+
+- Change: The percentage difference between the current day's closing price and the previous day's closing price.
+
+The data we are using is collected from 1/28/2019 to 3/28/2026, which incorporates the AI outbreak time. One of the limitations of this dataset is that there’s a possibility for State Street to rebalance the stock composition over time, thus the data might not be consistent to offer a robustic overtime analysis. 
 
 
 # Section 2. Variable Creation and Data Cleaning
