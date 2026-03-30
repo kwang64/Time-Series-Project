@@ -7,6 +7,7 @@ format: pdf
 library("tidyverse")
 library("ggplot2")
 library("dplyr")
+library("knitr")
 ```
 
 # Section 1. Data Collection
@@ -45,14 +46,16 @@ after_data  <- data[data$Date >= cutoff, ]
 ## detrend 
 - check if data is white noise, or MA, or AR
 ```{r}
-plot(data$Date, data$Price, type = "l")
+plot(data$Date, data$Price, type = "l", xlab="Date", ylab="Price", main = "Stock price over time (2019 - 2026)")
 ```
 
 ```{r}
-par(mfrow = c(2,2))
+par(mfrow = c(1,2))
 plot(before_data$Date, before_data$Price, type = "l")
 plot(after_data$Date, after_data$Price, type = "l", col = "blue")
 ```
+
+
 ```{r}
 #detrend
 model_data <- data.frame(
@@ -61,10 +64,138 @@ model_data <- data.frame(
 )
 
 fit <- lm(y ~ t, data = model_data)
-
+data$detrended_price <- resid(fit)
+acf(data$detrended_price)
 ```
 
 ## forecasting 
 
 # Section 4
+## EDA
+```{r}
+#| label: tbl-price
+#| tbl-cap: "Summary Statistics of Stock Price"
+#| echo: false
+#| message: false
+#| warning: false
+data |>
+  summarise(
+    mean_price = mean(Price, na.rm = TRUE),
+    sd_price = sd(Price, na.rm = TRUE),
+    min_price = min(Price, na.rm = TRUE),
+    max_price = max(Price, na.rm = TRUE)
+  ) |>
+  kable(caption = "Summary Statistics of Stock Price")
+```
+Table @tbl-price shows the mean, standard deviation, minimum and maximum of the stock price between 2017/1/3 to 2026/3/27. 
+
+## Transform Data
+```{r}
+#| label: fig-raw
+#| eval: true
+#| echo: false
+#| message: false
+#| warning: false
+ggplot(data, aes(Date, Price)) +
+  geom_line() +
+  geom_vline(xintercept = cutoff, linetype = "dashed", color = "red") +
+  labs(title = "Stock Price Over Time", subtitle = "Dashed line = 2022-11-30")
+```
+
+```{r}
+#| label: fig-rawacf
+#| eval: true
+#| echo: false
+#| message: false
+#| warning: false
+acf(data$Price, main="ACF of Raw Stock Price")
+```
+Figure @fig-rawacf indicates that the time series is not stationary, as the ACFs are out of the boundary and decay very slowly. Thus, we need to transform the data to make it stationary. For stock data, taking the natural log is a common way to transform the data.
+```{r}
+# log return the raw data
+#| eval: true
+#| echo: false
+#| message: false
+#| warning: false
+data <- data |>
+  mutate(log_price = log(Price),
+         log_return = c(NA, diff(log_price)))
+
+before_data <- data |> filter(Date < cutoff)
+after_data  <- data |> filter(Date >= cutoff)
+```
+
+```{r}
+#| label: fig-logreturn
+#| eval: true
+#| echo: false
+#| message: false
+#| warning: false
+ggplot(data, aes(x = Date, y = log_return)) +
+  geom_line() +
+  geom_vline(xintercept = cutoff, linetype = "dashed", color ="red") +
+  labs(title = "Log Return Over Time",
+       subtitle = "Dashed line = 2022-11-30",
+       x = "Date", y = "Log Price")
+```
+
+```{r}
+#| label: fig-logacf
+#| eval: true
+#| echo: false
+#| message: false
+#| warning: false
+acf(na.omit(data$log_return), main="ACF of log return")
+```
+Figure @fig-logreturn shows the log return over time. The data fluctuates around zero, which suggests the mean is around zero. Figure @fig-logacf shows the ACF of log return. Most ACFs fall within the bound. Thus, the log return time series looks stationary.
+
+## Compare log return
+```{r}
+#| label: tbl-log-return
+#| tbl-cap: "Summary Statistics of Stock Price"
+#| echo: false
+#| message: false
+#| warning: false
+data |>
+  mutate(period = ifelse(Date < cutoff, "Before", "After")) |>
+  summarise(
+    Mean_Return = mean(log_return, na.rm = TRUE),
+    SD_Return = sd(log_return, na.rm = TRUE),
+    .by = period
+  ) |>
+  mutate(
+    Mean_Return = round(Mean_Return, 5),
+    SD_Return = round(SD_Return, 5)
+  ) |>
+  kable()
+```
+According to table @tbl-log-return, the mean log return before and after the appearance of ChatGPT is both close to zero.
+
+## Fit Model
+```{r}
+#| label: fig-pacf
+#| eval: true
+#| echo: false
+#| message: false
+#| warning: false
+pacf(na.omit(data$log_return), main="PACF of log return")
+```
+According to figrue @fig-pacf, there is a strong pike at lag=1. So we fit AR(1), MA(1), and ARMA(1) to capture the time series.
+```{r}
+#AR(1)
+AR1 = arima(data$log_return, order = c(1,0,0))
+print(AR1)
+```
+
+```{r}
+#MA(1)
+MA1 = arima(data$log_return, order = c(0,0,1))
+print(MA1)
+```
+
+```{r}
+#ARMA(1,1)
+ARMA1 = arima(data$log_return, order = c(1,0,1))
+print(ARMA1)
+```
 
