@@ -35,7 +35,7 @@ Original dataset contains date as a character which may cause problems when usin
 We observed outliers that are doubled the price of the remaining data points. Looking at the data, we found that for most weekends, prices are carried over from the Friday of the same week. These outliers correspond to weekend days, as indicated by their dates, and their volumes are recorded as empty strings. We decided to remove these outliers because they are not consistent with the general pattern, which they doubled the Friday price. 
 Lastly, we split the dataset into two groups using November 30, 2022 (the release date of ChatGPT) as the cutoff. This is used for the comparison of the two time seires.
 
-We will detrend the data (and difference) the data to remove the overall growth in the stock market and possible market cycles. 
+We will difference the data to stabilize variance, and remove the overall growth in the stock market as well as possible market cycles. 
 ```{r, include=FALSE}
 #load data
 data <- read.csv("XLK ETF Stock Price History.csv")
@@ -56,23 +56,19 @@ after_data  <- data[data$Date >= cutoff, ]
 ```
 
 # Section 3 Analytic Methods 
-## regression model
 ### model assumption check
-
-## detrend 
 - check if data is white noise, or MA, or AR
-```{r}
+```{r, include=FALSE}
 plot(data$Date, data$Price, type = "l", xlab="Date", ylab="Price", main = "Stock price over time (2019 - 2026)")
 ```
 
-```{r}
+```{r, include=FALSE}
 par(mfrow = c(1,2))
 plot(before_data$Date, before_data$Price, type = "l")
 plot(after_data$Date, after_data$Price, type = "l", col = "blue")
 ```
 
-
-```{r}
+```{r, include=FALSE}
 #detrend
 model_data <- data.frame(
   t = 1:nrow(data),
@@ -83,8 +79,6 @@ fit <- lm(y ~ t, data = model_data)
 data$detrended_price <- resid(fit)
 acf(data$detrended_price)
 ```
-
-## forecasting 
 
 # Section 4
 ## EDA
@@ -103,7 +97,7 @@ data |>
   ) |>
   kable(caption = "Summary Statistics of Stock Price")
 ```
-Table @tbl-price shows the mean, standard deviation, minimum and maximum of the stock price between 2017/1/3 to 2026/3/27. 
+@tbl-price shows the mean, standard deviation, minimum and maximum of the stock price between 2017/1/3 to 2026/3/27. 
 
 ## Transform Data
 ```{r}
@@ -126,7 +120,7 @@ ggplot(data, aes(Date, Price)) +
 #| warning: false
 acf(data$Price, main="ACF of Raw Stock Price")
 ```
-Figure @fig-rawacf indicates that the time series is not stationary, as the ACFs are out of the boundary and decay very slowly. Thus, we need to transform the data to make it stationary. For stock data, taking the natural log is a common way to transform the data.
+@fig-rawacf indicates that the time series is not stationary, as the ACFs are out of the boundary and decay very slowly. Thus, we need to transform the data to make it stationary. For stock data, taking the natural log is a common way to transform the data.
 ```{r}
 # log return the raw data
 #| eval: true
@@ -214,4 +208,78 @@ print(MA1)
 ARMA1 = arima(data$log_return, order = c(1,0,1))
 print(ARMA1)
 ```
+
+## Forcasting
+We are interested in how significant the data after 2022/11/30, when AI stared its prevalence, is to forecasting future stock market prices. We will being using data frames of different time sets: 2017/1/3 - 2026/3/27, 2017/1/3 - 2022/11/30 and 2022/11/30 - 2026/3/27. The forecast models we will be using are five "benchmark" methods: Mean method, Naive method, Seasonal naive method, (drift methods and decomposition method, note: will do this later). 
+
+First, we aimed to examine whether AI has had an unexpected impact on the stock market and contributed to its fluctuations. We would like to use data from 2017/1/3 - 2022/11/30 to forecast data after 2022/11/30.
+
+```{r, include=FALSE}
+library(zoo)
+library(lubridate) 
+# [Link: Stack Overflow https://stackoverflow.com/questions/18755643/time-series-analysis-with-r-how-to-deal-with-daily-data]
+
+# Create a zoo object
+log_return_ts <- zoo(data$log_return, order.by = data$Date[-1])
+
+# Plot the time series
+plot(log_return_ts, main = "Daily Time Serie", xlab = "Date", ylab = "Log_return", type = "l", col = "blue")
+```
+
+```{r, include=FALSE}
+x_train1 <- log_return_ts[index(log_return_ts) <= as.Date("2022-11-30")]
+x_test1 <- log_return_ts[index(log_return_ts) > as.Date("2022-11-30")]
+
+#forecasts
+x_mean1 <- rep(mean(x_train1), length(x_test1)) #mean
+x_naive1 <- rep(tail(x_train1,1), length(x_test1)) #naive
+x_seasonal1 <- rep(c(tail(x_train1, 4)), length(x_test1)) #seasonal
+
+# forecast errors
+mean_errors1 <- x_test1 - x_mean1
+naive_errors1 <- x_test1 - x_naive1
+seasonal_errors1 <- x_test1 - x_seasonal1
+
+# MAE(Scale-dependent Errors)
+mean_MAE1 <- mean(abs(mean_errors1), na.rm = TRUE)
+naive_MAE1 <- mean(abs(naive_errors1), na.rm = TRUE)
+seasonal_MAE1 <- mean(abs(seasonal_errors1), na.rm = TRUE)
+
+#RMSE
+mean_RMSE1 <- sqrt(mean(mean_errors1^2, na.rm = TRUE))
+naive_RMSE1 <- sqrt(mean(naive_errors1^2, na.rm = TRUE))
+seasonal_RMSE1 <- sqrt(mean(seasonal_errors1^2, na.rm = TRUE))
+
+
+```
+
+```{r, include=FALSE}
+cat("MAE - Mean Forecast:     ", mean_MAE1, "\n")
+cat("MAE - Naive Forecast:    ", naive_MAE1, "\n")
+cat("MAE - Seasonal Forecast: ", seasonal_MAE1, "\n\n")
+
+cat("RMSE - Mean Forecast:     ", mean_RMSE1, "\n")
+cat("RMSE - Naive Forecast:    ", naive_RMSE1, "\n")
+cat("RMSE - Seasonal Forecast: ", seasonal_RMSE1, "\n")
+```
+
+```{r}
+#| label: tbl-forecast_errors
+#| eval: true
+#| echo: false
+#| message: false
+#| warning: false
+
+forecast_table <- data.frame(
+  Method = c("Mean", "Naive", "Seasonal"),
+  MAE    = c(mean_MAE1, naive_MAE1, seasonal_MAE1),
+  RMSE   = c(mean_RMSE1, naive_RMSE1, seasonal_RMSE1)
+)
+
+kable(forecast_table, digits = 5, caption = "Forecast Errors")
+```
+
+According to @tbl-forecast_errors, all the scaled dependent errors are small, even for these easier approaches. It appears that the data prior to 2022/11/30 can effectively predict the data following the cutoff point. Furthermore, this suggests that AI have not yet contribute a significant growth in the stock market. As a result, we will use the entire time frame, allocating 80% for training and 20% for testing, to build a forecast model in predict prices in future 2026. 
+
+
 
