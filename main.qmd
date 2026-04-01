@@ -210,7 +210,7 @@ print(ARMA1)
 ```
 
 ## Forcasting
-We are interested in how significant the data after 2022/11/30, when AI stared its prevalence, is to forecasting future stock market prices. We will being using data frames of different time sets: 2017/1/3 - 2026/3/27, 2017/1/3 - 2022/11/30 and 2022/11/30 - 2026/3/27. The forecast models we will be using are five "benchmark" methods: Mean method, Naive method, Seasonal naive method, (drift methods and decomposition method, note: will do this later). 
+We are interested in how significant the data after 2022/11/30, when AI stared its prevalence, is to forecasting future stock market prices. We will being using data frames of different time sets: 2017/1/3 - 2026/3/27, 2017/1/3 - 2022/11/30 and 2022/11/30 - 2026/3/27. The forecast models we will be using are five "benchmark" methods: Mean method, Naive method and Seasonal naive method. Drift method and decomposition method seem unnecessary with log return data because we already removed the trend. (Note: We can do a regression forecast if we have time)
 
 First, we aimed to examine whether AI has had an unexpected impact on the stock market and contributed to its fluctuations. We would like to use data from 2017/1/3 - 2022/11/30 to forecast data after 2022/11/30.
 
@@ -221,6 +221,9 @@ library(lubridate)
 
 # Create a zoo object
 log_return_ts <- zoo(data$log_return, order.by = data$Date[-1])
+
+#remove NA
+log_return_ts <- na.omit(log_return_ts)
 
 # Plot the time series
 plot(log_return_ts, main = "Daily Time Serie", xlab = "Date", ylab = "Log_return", type = "l", col = "blue")
@@ -272,14 +275,109 @@ cat("RMSE - Seasonal Forecast: ", seasonal_RMSE1, "\n")
 
 forecast_table <- data.frame(
   Method = c("Mean", "Naive", "Seasonal"),
-  MAE    = c(mean_MAE1, naive_MAE1, seasonal_MAE1),
-  RMSE   = c(mean_RMSE1, naive_RMSE1, seasonal_RMSE1)
+  MAE = c(mean_MAE1, naive_MAE1, seasonal_MAE1),
+  RMSE = c(mean_RMSE1, naive_RMSE1, seasonal_RMSE1)
 )
 
 kable(forecast_table, digits = 5, caption = "Forecast Errors")
 ```
 
-According to @tbl-forecast_errors, all the scaled dependent errors are small, even for these easier approaches. It appears that the data prior to 2022/11/30 can effectively predict the data following the cutoff point. Furthermore, this suggests that AI have not yet contribute a significant growth in the stock market. As a result, we will use the entire time frame, allocating 80% for training and 20% for testing, to build a forecast model in predict prices in future 2026. 
+According to @tbl-forecast_errors, all the scaled dependent errors are small, even for these easier approaches. It appears that the data prior to 2022/11/30 can effectively predict the data following the cutoff point. Furthermore, this suggests that AI have not yet contribute a significant impact in the stock market. As a result, we will use the entire time frame, allocating 80% for training and 20% for testing, to build a forecast model in predict prices in 2026. 
 
+```{r, include=FALSE}
+# entire data set 2017/1/3 - 2026/3/27
 
+2321*0.2 # 464 2024-05-21
 
+x_train2 <- log_return_ts[index(log_return_ts) <= as.Date("2024-05-21")]
+x_test2 <- log_return_ts[index(log_return_ts) > as.Date("2024-05-21")]
+
+#forecasts
+x_mean2 <- rep(mean(x_train2), length(x_test2)) #mean
+x_naive2 <- rep(tail(x_train2,1), length(x_test2)) #naive
+x_seasonal2 <- rep(c(tail(x_train2, 4)), length(x_test2)) #seasonal
+
+# forecast errors
+mean_errors2 <- x_test2 - x_mean2
+naive_errors2 <- x_test2 - x_naive2
+seasonal_errors2 <- x_test2 - x_seasonal2
+
+# MAE(Scale-dependent Errors)
+mean_MAE2 <- mean(abs(mean_errors2), na.rm = TRUE)
+naive_MAE2 <- mean(abs(naive_errors2), na.rm = TRUE)
+seasonal_MAE2 <- mean(abs(seasonal_errors2), na.rm = TRUE)
+
+#RMSE
+mean_RMSE2 <- sqrt(mean(mean_errors2^2, na.rm = TRUE))
+naive_RMSE2 <- sqrt(mean(naive_errors2^2, na.rm = TRUE))
+seasonal_RMSE2 <- sqrt(mean(seasonal_errors2^2, na.rm = TRUE))
+
+```
+
+```{r, include=FALSE}
+# problem here with MAPE b/c our data is around 0, so it blew up
+valid <- x_test2 != 0 & !is.na(x_test2)
+
+# percentage error
+mean_p_error <- 100*mean_errors2/x_test2[valid]
+naive_p_error <- 100*naive_errors2/x_test2[valid]
+seasonal_p_error <- 100*seasonal_errors2/x_test2[valid]
+
+#mean absolute percentage error
+mean_MAPE <- mean(abs(mean_p_error), na.rm = TRUE)
+naive_MAPE <- mean(abs(naive_p_error), na.rm = TRUE)
+seasonal_MAPE <- mean(abs(seasonal_p_error), na.rm = TRUE)
+```
+
+```{r}
+#| label: tbl-forecast_errors_full
+#| eval: true
+#| echo: false
+#| message: false
+#| warning: false
+
+forecast_table <- data.frame(
+  Method = c("Mean", "Naive", "Seasonal"),
+  MAE = c(mean_MAE2, naive_MAE2, seasonal_MAE2),
+  RMSE = c(mean_RMSE2, naive_RMSE2, seasonal_RMSE2)
+)
+
+kable(forecast_table, digits = 5, caption = "Forecast Errors-full model")
+```
+
+@tbl-forecast_errors_full shows the mean method is the best with lowest MAE and RMSE. We did not put MAPE here for comparison, because our log return data moves around 0, where some small values here make MAPE enormous and not as a good parameter to look at.
+
+```{r, echo = FALSE}
+qqnorm(log_return_ts, main = "QQ plot")
+
+hist(log_return_ts, main = "histogram")
+```
+
+Next, we would like to also make a prediction interval for this forecast model. Our ACF for log return looks acceptable as previously showed. The histogram looks normal, however qq-plot reveal that log return does not satisfy the linearity assumption. This suggests that our prediction interval is off. 
+
+(Note: actually I just realize there is probably no need to do prediction on this, because it is around 0; we are wondering if we can forecast in ARMA)
+
+```{r, echo = FALSE}
+#prediction interval
+forecast_time <- time(x_test2)
+forecast <- x_mean2 
+
+alpha <- 0.05
+sigma <- sqrt(sum((log_return_ts - mean(log_return_ts))^2) / 
+              (length(log_return_ts) - 1))
+c <- qnorm(1-alpha/2)
+sigma_h <- sigma*sqrt(1:length(forecast_time))
+LB <- forecast - c*sigma_h
+UB <- forecast + c*sigma_h
+
+original_data <- data.frame(points = c(log_return_ts), time = c(time(log_return_ts)))
+
+forecast_data <- data.frame(points = forecast, time = forecast_time, LB = LB, UB = UB)
+
+ggplot(data = original_data, aes(x = time, y = points)) + geom_line( ) +
+  ylab("Log Returns") + 
+  geom_line(data = forecast_data, aes(x = time, y = points), colour = "blue") + 
+  geom_ribbon(data = forecast_data, aes(x = time, ymin = LB, ymax = UB), 
+              fill = "lightblue", alpha = 0.5)
+
+```
