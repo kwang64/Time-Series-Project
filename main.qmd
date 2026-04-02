@@ -82,16 +82,17 @@ acf(data$detrended_price)
 ```
 
 ```{r}
-# 1. Plot raw price series
+#Plot raw price series
 plot(data$Date, data$Price, type = "l",
      xlab = "Date", ylab = "Price",
      main = "Raw XLK Stock Price")
 
-# 2. ACF of raw price
+#ACF and PACF of raw price
 par(mfrow = c(1, 2))
 acf(data$Price, main = "ACF of Raw Price")
+pacf(data$Price, main = "PACF of Raw Price")
 
-# 3. Transform to log return
+#Transform to log return
 data <- data |>
   mutate(
     log_price = log(Price),
@@ -101,38 +102,35 @@ data <- data |>
 # remove NA in first row
 log_return <- na.omit(data$log_return)
 
-# 4. Plot log return
+# log return
 plot(data$Date[-1], log_return, type = "l",
      xlab = "Date", ylab = "Log Return",
      main = "Log Return of XLK")
 
-# 5. ACF of log return
+#ACF of log return
 par(mfrow = c(1, 2))
 acf(log_return, main = "ACF of Log Return")
 
-
-# 7. Check whether log return looks like white noise
+# Check whether log return looks like white noise
 Box.test(log_return, lag = 20, type = "Ljung-Box")
 
-# 8. Fit candidate models
+#Fit models
 AR1 <- arima(log_return, order = c(1, 0, 0))
 MA1 <- arima(log_return, order = c(0, 0, 1))
 ARMA11 <- arima(log_return, order = c(1, 0, 1))
 
-# 9. Print model summaries
 AR1
 MA1
 ARMA11
 
-# 10. Compare AIC
 AIC(AR1, MA1, ARMA11)
 
-# 11. Check residuals of the best model manually
-# (example here uses AR1; replace if another model has lower AIC)
+# Check residuals of the best model manually
 par(mfrow = c(1, 2))
 acf(residuals(AR1), main = "ACF of AR(1) Residuals")
+pacf(residuals(AR1), main = "PACF of AR(1) Residuals")
 
-# 12. Ljung-Box test on residuals
+# Ljung-Box test on residuals
 Box.test(residuals(AR1), lag = 20, type = "Ljung-Box")
 ```
 
