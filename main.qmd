@@ -1,5 +1,5 @@
 ---
-title: "main"
+title: "Project Update 4&5"
 format: pdf
 ---
 ```{r, include=FALSE}
@@ -56,8 +56,7 @@ before_data <- data[data$Date < cutoff, ]
 after_data  <- data[data$Date >= cutoff, ]
 ```
 
-# Section 3 Analytic Methods 
-### model assumption check
+# Section 3. Analytic Methods 
 - check if data is white noise, or MA, or AR
 ```{r, include=FALSE}
 plot(data$Date, data$Price, type = "l", xlab="Date", ylab="Price", main = "Stock price over time (2019 - 2026)")
@@ -81,62 +80,6 @@ data$detrended_price <- resid(fit)
 acf(data$detrended_price)
 ```
 
-```{r}
-#Plot raw price series
-plot(data$Date, data$Price, type = "l",
-     xlab = "Date", ylab = "Price",
-     main = "Raw XLK Stock Price")
-
-#ACF and PACF of raw price
-par(mfrow = c(1, 2))
-acf(data$Price, main = "ACF of Raw Price")
-pacf(data$Price, main = "PACF of Raw Price")
-
-#Transform to log return
-data <- data |>
-  mutate(
-    log_price = log(Price),
-    log_return = c(NA, diff(log_price))
-  )
-
-# remove NA in first row
-log_return <- na.omit(data$log_return)
-
-# log return
-plot(data$Date[-1], log_return, type = "l",
-     xlab = "Date", ylab = "Log Return",
-     main = "Log Return of XLK")
-
-#ACF of log return
-par(mfrow = c(1, 2))
-acf(log_return, main = "ACF of Log Return")
-
-# Check whether log return looks like white noise
-Box.test(log_return, lag = 20, type = "Ljung-Box")
-
-#Fit models
-AR1 <- arima(log_return, order = c(1, 0, 0))
-MA1 <- arima(log_return, order = c(0, 0, 1))
-ARMA11 <- arima(log_return, order = c(1, 0, 1))
-
-AR1
-MA1
-ARMA11
-
-AIC(AR1, MA1, ARMA11)
-
-# Check residuals of the best model manually
-par(mfrow = c(1, 2))
-acf(residuals(AR1), main = "ACF of AR(1) Residuals")
-pacf(residuals(AR1), main = "PACF of AR(1) Residuals")
-
-# Ljung-Box test on residuals
-Box.test(residuals(AR1), lag = 20, type = "Ljung-Box")
-```
-
-
-
-# Section 4
 ## EDA
 ```{r}
 #| label: tbl-price
@@ -264,6 +207,28 @@ print(MA1)
 ARMA1 = arima(data$log_return, order = c(1,0,1))
 print(ARMA1)
 ```
+### Model Comparison
+```{r}
+#| label: tbl-model-comparison
+#| tbl-cap: "Comparison of AR(1), MA(1), and ARMA(1,1) Models"
+#| eval: true
+#| echo: false
+#| message: false
+#| warning: false
+
+library(knitr)
+
+model_table <- data.frame(
+  Model = c("AR(1)", "MA(1)", "ARMA(1,1)"),
+  Coefficients = c("ar1 = -0.1426",
+                   "ma1 = -0.1337",
+                   "ar1 = -0.3122, ma1 = 0.1725"),
+  AIC = c(-12712.45, -12709.25, -12712.34)
+)
+
+kable(model_table, digits = 5)
+```
+AR(1), MA(1) and ARMA (1,1) are fitted to. the log return series. The AR (1) has the smallest AIC among all the three models. The ARMA (1,1) has a slightly higher AIC compares to AR(1), while the MA(1) has the overall largest AIC. 
 
 ## Forcasting
 We are interested in how significant the data after 2022/11/30, when AI stared its prevalence, is to forecasting future stock market prices. We will being using data frames of different time sets: 2017/1/3 - 2026/3/27, 2017/1/3 - 2022/11/30 and 2022/11/30 - 2026/3/27. The forecast models we will be using are five "benchmark" methods: Mean method, Naive method and Seasonal naive method. Drift method and decomposition method seem unnecessary with log return data because we already removed the trend. (Note: We can do a regression forecast if we have time)
