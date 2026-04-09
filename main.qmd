@@ -418,4 +418,8 @@ The project test whether the rise of AI has significantly impacted the behavior 
 
 
 ## Limitation
-There are some potential limitations for the dataset. One of the limitations is that there's possibility for State Street to rebalance the stock composition over time, thus the data might not be consistent to offer a robustic overtime analysis. Another limitation is the dependency of the dataset. In the EDA, we found out the time series data points are highly correlated whether before or after the data transformation. For instance, the QQ plot indicates deviations from normality, suggesting that model assumptions may not hold and prediction intervals may be unreliable. In addition, our model only test on the short-term impacts, but AI boom may results from a long-term trend. The log transformation may mask the underlying long term trend.
+There are some potential limitations for the dataset. One of the limitations is that there's possibility for State Street to rebalance the stock composition over time, thus the data might not be consistent to offer a robust overtime analysis. 
+
+Another limitation is the dependency of the dataset. In the EDA, we found out the time series data points are highly correlated whether before or after the data transformation. For instance, the QQ plot indicates deviations from normality, suggesting that model assumptions may not hold and prediction intervals may be unreliable. In addition, our model only test on the short-term impacts, but AI boom may results from a long-term trend. The log transformation may mask the underlying long term trend.
+
+Also, AR, MA, ARMA are all autoregressive models that look solely on the past values. They do not include other important factors, such as policy changes, economic policy changes, etc. There are some other factors that are not included in our models .
