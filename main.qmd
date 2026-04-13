@@ -11,11 +11,9 @@ library("knitr")
 ```
 
 # Section 1. Data Collection
-The XLK stock price we are looking at is accounted by S&P Dow Jones Indices and State Street Global Advisory. S&P Dow Jones Indices is in charge of creating the company benchmark on entering the technology company stock pool; while the State Street Global Advisors selected particular stocks into the combination of the XLK stock. The data we are using is collected from the investing.com website, a financial data platform that provides public real-time market data directly from stock exchanges such as the NYSE and NASDAQ. The primary purpose of collecting the data is to provide a transparent record of the performance of the Technology Selected Sector Index. The subjects of this data series are the large-cap U.S. technology companies such as  Microsoft, NVIDIA, and Apple whose market valuations and returns constitute the movement of the XLK fund.
+The XLK stock price we are looking at is collected by S&P Dow Jones Indices and State Street Global Advisory. S&P Dow Jones Indices is in charge of creating the company benchmark on entering the technology company stock pool; while the State Street Global Advisors selected particular stocks into the combination of the XLK stock. The data we are using is collected from the investing.com website, a financial data platform that provides public real-time market data directly from stock exchanges such as the New York Stock Exchange and NASDAQ. These two trading platforms provide a transparent record of the performance of the Technology Selected Sector Index. We are interested in the influence of the large-cap U.S. technology companies such as  Microsoft, NVIDIA, and Apple whose market valuations and returns constitute the movement of the XLK fund.
 
 The variables we are using includes: 
-
-- Date: The specific trading day of the observed data
 
 - Price (Close): The final price at which the ETF traded when the stock exchange closed (typically 4:00 PM EST).
 
@@ -27,7 +25,7 @@ The variables we are using includes:
 
 - Change: The percentage difference between the current day's closing price and the previous day's closing price.
 
-The data we are using is collected from 1/3/2017 to 3/28/2026, which incorporates the AI outbreak time. One of the limitations of this dataset is that there’s a possibility for State Street to rebalance the stock composition over time, thus the data might not be consistent to offer a robustic overtime analysis. 
+The data we are using is collected daily from January 3, 2017, to March 28, 2026, which incorporates the AI outbreak time. 
 
 
 # Section 2. Variable Creation and Data Cleaning
