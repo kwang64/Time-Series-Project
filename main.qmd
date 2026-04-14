@@ -214,6 +214,13 @@ print(ARMA1)
 ```
 ### Model Comparison
 ```{r}
+# BIC for the models
+BIC_AR1<- BIC(AR1)
+BIC_MA1<- BIC(MA1)
+BIC_ARMA1<- BIC(ARMA1)
+```
+
+```{r}
 #| label: tbl-model-comparison
 #| tbl-cap: "Comparison of AR(1), MA(1), and ARMA(1,1) Models"
 #| eval: true
@@ -222,16 +229,21 @@ print(ARMA1)
 #| warning: false
 
 library(knitr)
+loglik_AR1 <- AR1$loglik
+loglik_MA1 <- MA1$loglik
+loglik_ARMA1 <- ARMA1$loglik
 
 model_table <- data.frame(
   Model = c("AR(1)", "MA(1)", "ARMA(1,1)"),
   Coefficients = c("ar1 = -0.1426",
                    "ma1 = -0.1337",
                    "ar1 = -0.3122, ma1 = 0.1725"),
-  AIC = c(-12712.45, -12709.25, -12712.34)
+  AIC = c(-12712.45, -12709.25, -12712.34),
+  BIC = c(BIC_AR1,BIC_MA1,BIC_ARMA1),
+  Log_Likelihood_Ratio = c(loglik_AR1,loglik_MA1,loglik_ARMA1)
 )
 
-kable(model_table, digits = 5)
+kable(model_table, col.name = c("Model","Coefficients","AIC", "BIC","Log Likelihood Ratio"),digits = 5)
 ```
 AR(1), MA(1) and ARMA (1,1) are fitted to the log return series. The AR (1) has the smallest AIC among all the three models. The ARMA (1,1) has a slightly higher AIC compares to AR(1), while the MA(1) has the overall largest AIC. 
 
