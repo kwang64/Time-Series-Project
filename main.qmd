@@ -159,15 +159,15 @@ acf(na.omit(data$log_return), main="ACF of log return")
 #| message: false
 #| warning: false
 data |>
-  mutate(period = ifelse(Date < cutoff, "Before", "After")) |>
+  mutate(period = ifelse(Date < cutoff, "Before AI", "After AI")) |>
   summarise(
-    Mean_Return = mean(log_return, na.rm = TRUE),
-    SD_Return = sd(log_return, na.rm = TRUE),
+    Mean = mean(log_return, na.rm = TRUE),
+    SD = sd(log_return, na.rm = TRUE),
     .by = period
   ) |>
   mutate(
-    Mean_Return = round(Mean_Return, 5),
-    SD_Return = round(SD_Return, 5)
+    Mean = round(Mean, 5),
+    SD = round(SD, 5)
   ) |>
   kable()
 ```
