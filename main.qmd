@@ -267,6 +267,12 @@ log_return_ts <- na.omit(log_return_ts)
 plot(log_return_ts, main = "Daily Time Serie", xlab = "Date", ylab = "Log_return", type = "l", col = "blue")
 ```
 
+```{r}
+library(tseries)
+
+adf.test(log_return_ts)
+```
+
 ```{r, include=FALSE}
 x_train1 <- log_return_ts[index(log_return_ts) <= as.Date("2022-11-30")]
 x_test1 <- log_return_ts[index(log_return_ts) > as.Date("2022-11-30")]
