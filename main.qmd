@@ -438,8 +438,10 @@ Another limitation is the dependency of the dataset. In Section 3, we found out 
 Also, AR, MA, ARMA are all models that are only a function of the time series itself. They do not include other important factors, such as government policy or economic policy changes. There are many other factors that affects the stock market that we did not incorporate, such as economic indicators and interest rates. Since stock market is influenced by many external variables, excluding these factors may limit the strength and forecasting accuracy of the models.
 
 ## Future Directions
-To account for these factors that are not included in our model but would affect the stock market, we could add these time series as predictors in our model. This can help our model better estimate the returns or prices. 
+To account for external factors that might affect the stock market, we could add these as predictors in our model. This can help us better estimate stock prices. 
 
-We have not been able to conclude AI has significant impact on the behavior of technology sector stock returns. It is still useful to estimate how sensitive technology sector stock price comparing to the other stocks that includes other companies. 
+Although we have not been able to conclude AI has significant impact on the behavior of technology sector stock returns, it is still useful to estimate how sensitive technology sector stock price comparing to the broader market indices or other sectors. We might expect the technology sector to show higher volatility and respond more to growth expectations. In future studies, we can fit and compare separate models for different market segments, such as the S&P 500 and individual sectors like healthcare or financials, to better understand these differences.
 
-It is possible to incorporate the method proposed by  Campos-Martins (2024) with our model. After identifying notable development by AI companies, we can refine our model’s predictors to improve accuracy. 
+It is also possible to incorporate the method proposed by  Campos-Martins (2024) with our model. After identifying notable development by AI companies, we can adjust our predictors to improve accuracy. For example, we could include an indicator variable that captures major AI events or achievements. This would allow the model to account for changes over time driven by new innovations, instead of relying only on fixed predictors. 
+
+Finally, our research should follow a consistent process where we constantly refit the models as the stock market changes over time. Updating the model with new data can help us see whether there are any long-term effects or clear shifts in the data, especially as AI continues to develop and become more widely used.
