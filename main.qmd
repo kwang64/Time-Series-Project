@@ -8,6 +8,8 @@ library("tidyverse")
 library("ggplot2")
 library("dplyr")
 library("knitr")
+library(tseries) 
+library(astsa)
 ```
 
 # Section 1. Data Collection
@@ -112,7 +114,16 @@ ggplot(data, aes(Date, Price)) +
 #| warning: false
 acf(data$Price, main="ACF of Raw Stock Price")
 ```
-@fig-rawacf indicates that the time series is not stationary, as the ACFs are out of the boundary and decay very slowly. Thus, we need to transform the data to make it stationary. For stock data, taking the natural log is a common way to transform the data.
+
+```{r}
+#| label: fig-rawpacf
+#| eval: true
+#| echo: false
+#| message: false
+#| warning: false
+pacf(data$Price, main="PACF of Raw Stock Price")
+```
+@fig-rawacf indicates that the time series is not white noise, as the ACFs are out of the boundary and decay very slowly, which looks like a unit root process. Thus, we need to transform the data to make it stationary. For stock data, taking the natural log is a common way to transform the data.
 ```{r}
 #| eval: true
 #| echo: false
@@ -149,7 +160,20 @@ ggplot(data, aes(x = Date, y = log_return)) +
 #| warning: false
 acf(na.omit(data$log_return), main="ACF of log return")
 ```
-@fig-logacf shows the ACF of log return. Most ACFs fall within the bound. And @fig-logreturn suggests the mean is around zero. Thus, the log return time series looks stationary.
+
+```{r}
+#| label: fig-logpacf
+#| eval: true
+#| echo: false
+#| message: false
+#| warning: false
+pacf(na.omit(data$log_return), main="PACF of log return")
+```
+@fig-logacf shows the ACF of log return. There are several spikes that are not within the bound. And @fig-logreturn suggests the mean is around zero. Thus, the log return time series looks stationary. An ADF test was used to determine whether the data is stationary.
+```{r, include=FALSE}
+adf.test(na.omit(data$log_return))
+```
+The ADF test has a p value of 0.01, suggesting the process to be stationary. Since the data is stationary, ARIMA can be used to fit the data.
 
 ## Compare log return
 ```{r}
@@ -174,64 +198,65 @@ data |>
 According to table @tbl-log-return, the mean log return before and after the appearance of ChatGPT is both close to zero.
 
 ## Fit Model
-```{r}
-#| label: fig-pacf
-#| eval: true
-#| echo: false
-#| message: false
-#| warning: false
-pacf(na.omit(data$log_return), main="PACF of log return")
-```
-According to @fig-pacf, there is a strong pike at lag=1. So we fit AR(1), MA(1), and ARMA(1) to capture the time series.
+Using ACF and PACF, we can pick the order of the ARIMA model. 
+
+According to @fig-acf, ACF tails off. According to @fig-pacf, there are strong pike at lag 2, 4, 5 and many other lags. So we fit ARIMA(1,1,1), ARIMA(2,1,2), and ARIMA(4,1,4) on the price data to capture the time series.
 ```{r}
 #| eval: true
 #| echo: false
 #| message: false
 #| warning: false
-#AR(1)
-AR1 = arima(data$log_return, order = c(1,0,0))
-print(AR1)
+model1 <- sarima(data$log_price, p=1, d=1, q=1, no.constant=TRUE) 
+model2 <- sarima(data$log_price, p=2, d=1, q=2, no.constant=TRUE) 
+model3 <- sarima(data$log_price, p=4, d=1, q=4, no.constant=TRUE)
+model4 <- sarima(data$log_price, p=7, d=1, q=7, no.constant=TRUE)
+model5 <- sarima(data$log_price, p=8, d=1, q=8, no.constant=TRUE)
 ```
 
-```{r}
-#| eval: true
-#| echo: false
-#| message: false
-#| warning: false
-#MA(1)
-MA1 = arima(data$log_return, order = c(0,0,1))
-print(MA1)
-```
 
-```{r}
-#| eval: true
-#| echo: false
-#| message: false
-#| warning: false
-#ARMA(1,1)
-ARMA1 = arima(data$log_return, order = c(1,0,1))
-print(ARMA1)
-```
 ### Model Comparison
 ```{r}
-# BIC for the models
-BIC_AR1<- BIC(AR1)
-BIC_MA1<- BIC(MA1)
-BIC_ARMA1<- BIC(ARMA1)
+#| label: tbl-model-comparison
+#| tbl-cap: "Comparison of Model Performance"
+#| eval: true
+#| echo: false
+#| message: false
+#| warning: false
+all_ICs <- rbind(
+  model1$ICs,
+  model2$ICs,
+  model3$ICs,
+  model4$ICs,
+  model5$ICs
+)
+
+all_loglik <- c(
+  model1$loglik,
+  model2$loglik,
+  model3$loglik,
+  model4$loglik,
+  model5$loglik
+)
+all_results <- cbind(
+  all_ICs,
+  logLik = all_loglik
+)
+all_results |> kable()
+
 ```
 
 ```{r}
 #| label: tbl-model-comparison
 #| tbl-cap: "Comparison of AR(1), MA(1), and ARMA(1,1) Models"
-#| eval: true
+#| eval: false
 #| echo: false
 #| message: false
 #| warning: false
 
 library(knitr)
-loglik_AR1 <- AR1$loglik
-loglik_MA1 <- MA1$loglik
-loglik_ARMA1 <- ARMA1$loglik
+loglik_AR1 <- model1$loglik
+loglik_MA1 <- model2$loglik
+loglik_ARMA1 <- model3$loglik
 
 model_table <- data.frame(
   Model = c("AR(1)", "MA(1)", "ARMA(1,1)"),
