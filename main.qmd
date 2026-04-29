@@ -54,6 +54,7 @@ after_data  <- data[data$Date >= cutoff, ]
 ```
 
 # Section 3. Analytic Methods 
+## 3.1 Exploratory Data Analysis
 ```{r, include=FALSE}
 plot(data$Date, data$Price, type = "l", xlab="Date", ylab="Price", main = "Stock price over time (2019 - 2026)")
 ```
@@ -115,16 +116,8 @@ ggplot(data, aes(Date, Price)) +
 acf(data$Price, main="ACF of Raw Stock Price")
 ```
 
-```{r}
-#| label: fig-rawpacf
-#| eval: true
-#| echo: false
-#| message: false
-#| warning: false
-pacf(data$Price, main="PACF of Raw Stock Price")
-```
-@fig-rawacf indicates that the time series is not white noise, as the ACFs are out of the boundary and decay very slowly, which looks like a unit root process. Thus, we need to transform the data to make it stationary. For stock data, taking the natural log is a common way to transform the data.
-```{r}
+@fig-rawacf indicates that the time series is not white noise, as the ACFs are out of the boundary and decay very slowly, which looks like a unit root process. Thus, we need to transform the data to make it stationary for model fitting. For stock data, taking the natural log is a common way to transform the data.
+```{r, include=FALSE}
 #| eval: true
 #| echo: false
 #| message: false
@@ -169,13 +162,13 @@ acf(na.omit(data$log_return), main="ACF of log return")
 #| warning: false
 pacf(na.omit(data$log_return), main="PACF of log return")
 ```
-@fig-logacf shows the ACF of log return. There are several spikes that are not within the bound. And @fig-logreturn suggests the mean is around zero. Thus, the log return time series looks stationary. An ADF test was used to determine whether the data is stationary.
+@fig-logreturn suggests the mean is around zero, which suggests log return time series might be  stationary. But @fig-logacf shows the ACF of log return. There are several spikes that are not within the bound. Therefore, an ADF test was used to determine whether the data is stationary.
 ```{r, include=FALSE}
 adf.test(na.omit(data$log_return))
 ```
-The ADF test has a p value of 0.01, suggesting the process to be stationary. Since the data is stationary, ARIMA can be used to fit the data.
+The ADF test has a p value of 0.01, suggesting log return is stationary. 
 
-## Compare log return
+## Compare log return using regression
 ```{r}
 #| label: tbl-log-return
 #| tbl-cap: "Summary Statistics of Stock Price"
@@ -195,17 +188,37 @@ data |>
   ) |>
   kable()
 ```
-According to table @tbl-log-return, the mean log return before and after the appearance of ChatGPT is both close to zero.
+According to table @tbl-log-return, the mean log return before and after the appearance of ChatGPT is both close to zero. To test whether there is a difference on log return before and after ChatGPT appearance, a regression model with a dummy variable $D_t$ as predictor is fitted. 
+$$log(return)=\beta_0 + \beta_1 D_t$$
+where $D_t=0$ is before the appearance of ChatGPT, and $D_t=1$ is after the appearance of ChatGPT. A two sample mean test can be used to determine whether $D_t$ is significant. The null hypothesis is that the mean log returns in the two periods are equal, while the alternative hypothesis is that they are different. 
 
-## Fit Model
+```{r, include=FALSE}
+data$AI_dummy <- ifelse(data$Date >= as.Date("2022-11-30"), 1, 0)
+
+model <- lm(log_return ~ AI_dummy, data = data)
+```
+
+```{r}
+#| echo: false
+mod_table <- summary(model)$coefficients
+kable(
+  round(mod_table, 3),
+  caption = "Model Coefficients",
+  col.names = c("Estimate", "Std. Error", "t value", "Pr(>|t|)")
+) 
+```
+The p value of the dummy variable is 0.895, which is greater than 0.05. Thus, we fail to reject the null hypothesis, and conclude that there is no difference on the mean log return values before and after the appearance of AI. 
+
+## Fit ARIMA Model
 Using ACF and PACF, we can pick the order of the ARIMA model. 
 
-According to @fig-acf, ACF tails off. According to @fig-pacf, there are strong pike at lag 2, 4, 5 and many other lags. So we fit ARIMA(1,1,1), ARIMA(2,1,2), and ARIMA(4,1,4) on the price data to capture the time series.
+According to @fig-acf, ACF tails off. According to @fig-pacf, there are strong pike at lag 2, 4, 7, 8 and many other lags. So we fit ARIMA(1,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(7,1,7), and ARIMA(8,1,8) on the price data to capture the time series.
 ```{r}
 #| eval: true
 #| echo: false
 #| message: false
 #| warning: false
+#| results: 'hide'
 model1 <- sarima(data$log_price, p=1, d=1, q=1, no.constant=TRUE) 
 model2 <- sarima(data$log_price, p=2, d=1, q=2, no.constant=TRUE) 
 model3 <- sarima(data$log_price, p=4, d=1, q=4, no.constant=TRUE)
@@ -213,8 +226,10 @@ model4 <- sarima(data$log_price, p=7, d=1, q=7, no.constant=TRUE)
 model5 <- sarima(data$log_price, p=8, d=1, q=8, no.constant=TRUE)
 ```
 
+### Model Diagnosis
+The p values for Ljung-Box Statistic plots indicate that ARIMA(1,1,1), ARIMA(2,1,2), and ARIMA (4,1,4) are not good fits, because p values are significant for all lags. ACF plots for ARIMA(7,1,7) and ARIMA (8,1,8) looks stationary, but QQ plots show the points are deviated from the reference line, meaning the normality condition is not met. To determine which model performs the best, we compare the model AIC, AICc, and BIC values.
 
-### Model Comparison
+### Model Choice
 ```{r}
 #| label: tbl-model-comparison
 #| tbl-cap: "Comparison of Model Performance"
@@ -241,36 +256,13 @@ all_results <- cbind(
   all_ICs,
   logLik = all_loglik
 )
+rownames(all_results) <- c("ARIMA(1,1,1)", "ARIMA(2,1,2)","ARIMA(4,1,4)", "ARIMA(7,1,7)", "ARIMA(8,1,8)")
+
 all_results |> kable()
-
 ```
 
-```{r}
-#| label: tbl-model-comparison
-#| tbl-cap: "Comparison of AR(1), MA(1), and ARMA(1,1) Models"
-#| eval: false
-#| echo: false
-#| message: false
-#| warning: false
 
-library(knitr)
-loglik_AR1 <- model1$loglik
-loglik_MA1 <- model2$loglik
-loglik_ARMA1 <- model3$loglik
-
-model_table <- data.frame(
-  Model = c("AR(1)", "MA(1)", "ARMA(1,1)"),
-  Coefficients = c("ar1 = -0.1426",
-                   "ma1 = -0.1337",
-                   "ar1 = -0.3122, ma1 = 0.1725"),
-  AIC = c(-12712.45, -12709.25, -12712.34),
-  BIC = c(BIC_AR1,BIC_MA1,BIC_ARMA1),
-  Log_Likelihood_Ratio = c(loglik_AR1,loglik_MA1,loglik_ARMA1)
-)
-
-kable(model_table, col.name = c("Model","Coefficients","AIC", "BIC","Log Likelihood Ratio"),digits = 5)
-```
-AR(1), MA(1) and ARMA (1,1) are fitted to the log return series. The AR (1) has the smallest AIC among all the three models. The ARMA (1,1) has a slightly higher AIC compares to AR(1), while the MA(1) has the overall largest AIC. 
+The ARIMA(7,1,7) has the smallest AICc value among all the models. Therefore, we pick ARIMA(7,1,7) as our best model.
 
 ## Forcasting
 We are interested in how significant the data after 2022/11/30, when ChatGPT got launched, is to forecasting future stock market prices. We will being using data frames of different time sets: 2017/1/3 - 2026/3/27, 2017/1/3 - 2022/11/30 and 2022/11/30 - 2026/3/27. (Date) The forecast models we will be using three of the "benchmark" methods: Mean method, Naive method and Seasonal naive method. (descibe methods) Drift method and decomposition method seem unnecessary with log return data because we have already removed the trend.
