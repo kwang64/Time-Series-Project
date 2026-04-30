@@ -13,6 +13,24 @@ library(astsa)
 ```
 
 # Section 1. Data Collection
+## Introduction 
+Technology stocks have accounted for 32% of global equity returns and 40% of total U.S. equity market returns since 2010 (Goldman Sachs, 2024), highlighting the dominant role of the technology sector in modern financial markets. Large-cap firms such as Apple and Microsoft represent a substantial share of total market capitalization, and their performance increasingly shapes the trajectory of major stock indices such as the S&P 500 and the NASDAQ Composite.
+Because technology companies are largely valued based on expectations of future innovation and scalability, new technological breakthroughs can trigger significant revisions in investor expectations, often leading to substantial movements in stock prices.
+
+(The logical chain of how an emerge of a new technology may change the valuation of a company)
+The invention of a new technology brings lots of impacts to a company's business. Especially for technology companies, launching a new technology product increases the valuation of company (cite). EBITDA (Earnings Before Interest, Taxes, Depreciation, and Amortization) is a commonly used corporate valuation method for technology companies, where the technology differentiation plays a critical role in the evaluation (cite). Even though OpenAI is not publicly traded, the hard launch of ChatGPT on November 2022 has brought up OpenAI's net worth and attracted a great amount of investors, with it's valuation skyrocketing from roughly $20 billion to an estimated 852 billion by 2026. 
+
+As several Tech Giant firms launching their AI product, such as the Gemini from Google and the Claud from Anthropic, their companys' valuation, specifically the stock pricem have shifted.
+
+One recent milestone was the public release of ChatGPT on November 30, 2022, which brought generative artificial intelligence into widespread public use. The adoption of AI applications reshaped market narratives surrounding technological growth and productivity. Companies perceived as key beneficiaries of AI development, including NVIDIA Corporation and Microsoft Corporation, experienced significant revaluations in the subsequent period. This shift shows that innovation shocks may influence not only short-term prices but potentially the broader dynamics of the technology sector.
+
+Understanding whether such a technological breakthrough corresponds to a lasting change in market behavior is important for investors and policymakers. Persistent shifts in return patterns could affect risk assessment, portfolio allocation, and forecasting models. Financial return series are time-dependent and often exhibit changes in volatility and growth dynamics over time. If the
+emergence of generative AI altered investor expectations in a sustained way, this effect may manifest as a structural change in the return-generating process.
+
+This project investigate whether the emergence of generative AI represents a structural change in the behavior of technology-sector stock returns. Specifically, it analyzes the Technology Selected Sector SPDR Fund (XLK) using ARIMA models and examines whether the release of ChatGPT corresponds to a break in the XLK time series from 2017 to 2024.  
+
+## Background & Significance
+
 The XLK stock price we are looking at is collected by S&P Dow Jones Indices and State Street Global Advisory. S&P Dow Jones Indices is in charge of creating the company benchmark on entering the technology company stock pool; while the State Street Global Advisors selected particular stocks into the combination of the XLK stock. The data we are using is collected from the investing.com website, a financial data platform that provides public real-time market data directly from stock exchanges such as the New York Stock Exchange and NASDAQ. These two trading platforms provide a transparent record of the performance of the Technology Selected Sector Index. We are interested in the influence of the large-cap U.S. technology companies such as  Microsoft, NVIDIA, and Apple whose market valuations and returns constitute the movement of the XLK fund.
 
 The variables we are using includes: 
@@ -27,8 +45,7 @@ The variables we are using includes:
 
 - Change: The percentage difference between the current day's closing price and the previous day's closing price.
 
-The data we are using is collected daily from January 3, 2017, to March 28, 2026, which incorporates the AI outbreak time. 
-
+The data we are using is collected daily from January 3, 2017, to March 28, 2026, which incorporates the AI outbreak time.
 
 # Section 2. Variable Creation and Data Cleaning
 We observed outliers that are double the price of the remaining data points. We also found that for most weekends, prices are carried over from the Friday of the same week. These outliers correspond to weekend days, and theey have no data for the variable, Vol. We decided to remove these outliers because they are not consistent with the general pattern, which they doubled the Friday price. 
