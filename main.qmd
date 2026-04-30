@@ -24,27 +24,30 @@ Understanding whether such a technological breakthrough corresponds to a lasting
 
 This paper investigates whether the emergence of generative AI signaled a fundamental change in the behavior of technology-sector stock returns. We evaluate this change by comparing stock performance before and after the launch of ChatGPT. Specifically, we analyze the Technology Select Sector SPDR Fund (XLK) using ARIMA models to examine whether the release of ChatGPT corresponds to a statistically significant shift in XLK price dynamics from 2017 to 2024.
 
+We chose the XLK because it's a comprehensive fund that captures an effective representation of the technology sector of the S&P 500 Index. The XLK has a 4-star in the Morningstar rating by March 2026, indicating an above-average performance that the XLK is in the top 22.5% to 32.5% of technology category. The XLK ETF provides precise exposure to companies from technology hardware, storage and peripherals; software; communications equipment; semiconductors and semiconductor equipment; IT services; and electronic equipment, instruments and components industries (State Street). This feature allows investors to take strategic or tactical positions at a more targeted level than traditional style based investing. The companies in the XLK are selected from the S&P 500 based on the Global Industry Classification Standard (GICS) where companies are assigned to a single classification based on revenue. 
+
 # 2 Data
 
-The XLK stock price we are looking at is collected by S&P Dow Jones Indices and State Street Global Advisory. S&P Dow Jones Indices is in charge of creating the company benchmark on entering the technology company stock pool; while the State Street Global Advisors selected particular stocks into the combination of the XLK stock. The data we are using is collected from the investing.com website, a financial data platform that provides public real-time market data directly from stock exchanges such as the New York Stock Exchange and NASDAQ. These two trading platforms provide a transparent record of the performance of the Technology Selected Sector Index. We are interested in the influence of the large-cap U.S. technology companies such as  Microsoft, NVIDIA, and Apple whose market valuations and returns constitute the movement of the XLK fund.
+The XLK stock price we are looking at is collected by S&P Dow Jones Indices and State Street Global Advisory. S&P Dow Jones Indices is in charge of creating the company benchmark on entering the technology company stock pool. The State Street Global Advisors selected particular stocks into the combination of the XLK stock. The data we are using is collected from the investing.com website, a financial data platform that provides public real-time market data directly from stock exchanges such as the New York Stock Exchange and NASDAQ. 
 
-The variables we are using includes: 
+## 2.1 Data Overview
+Using the dataset from the investing website, we derive the following variables for the analysis:
 
-- Price (Close): The final price at which the ETF traded when the stock exchange closed (typically 4:00 PM EST).
+- `Price` (in USD): The final price at which the ETF traded when the stock exchange closed (typically 4:00 PM EST).
 
-- Open:  The price of the very first transaction when the market opened (9:30 AM EST).
+- `Open` (in USD): The price of the very first transaction when the market opened (9:30 AM EST).
 
-- High & Low: The maximum and minimum prices reached during the trading session.
+- `High` & `Low` (in USD): The maximum and minimum prices reached during the trading session.
 
-- Vol.: The total number of shares traded during the day (e.g., 15.90M means 15.9 million shares).
+- `Vol.`: The total number of shares traded during the day (e.g., 15.90M means 15.9 million shares).
 
-- Change: The percentage difference between the current day's closing price and the previous day's closing price.
+- `Change`: The percentage difference between the current day's closing price and the previous day's closing price.
 
-The data we are using is collected daily from January 3, 2017, to March 28, 2026, which incorporates the AI outbreak time.
+The dataset comprises daily observations spanning from January 3, 2017, to March 28, 2026. This time frame was specifically selected to ensure that the launch of ChatGPT (November 30, 2022) serves as a central pivot point, providing a balanced sample size for comparing pre- and post-innovation market dynamics
 
-## Variable Creation and Data Cleaning
-We observed outliers that are double the price of the remaining data points. We also found that for most weekends, prices are carried over from the Friday of the same week. These outliers correspond to weekend days, and theey have no data for the variable, Vol. We decided to remove these outliers because they are not consistent with the general pattern, which they doubled the Friday price. 
-Lastly, we split the dataset into two groups using November 30, 2022 (the release date of ChatGPT) as the cutoff.
+## 2.2 Data Cleaning
+
+In the original dataset downloaded from the investing website, we observed outliers that are doubled the price of the remaining data points. We also found that for the weekends, prices are carried over from the Friday of the same week. These data points correspond to weekend days, and they have no data for the variable, `Vol.`. We decided to remove these points because they are not consistent with the general pattern, which they doubled the Friday price. Lastly, we split the dataset into two groups: `before_data` and `after_data`, using November 30, 2022 (the release date of ChatGPT) as the cutoff.
 
 ```{r, include=FALSE}
 #load data
@@ -107,7 +110,6 @@ acf(data$detrended_price)
 ```
 
 
-## Transform Data
 ```{r}
 #| label: fig-raw
 #| eval: true
@@ -181,7 +183,9 @@ adf.test(na.omit(data$log_return))
 ```
 The ADF test has a p value of 0.01, suggesting log return is stationary. 
 
-## Assess difference between before AI and after AI
+# 3 Method 
+
+## 3.1 Assess difference between before AI and after AI
 ```{r}
 #| label: tbl-log-return
 #| tbl-cap: "Summary Statistics of Stock Price"
@@ -243,7 +247,7 @@ ggplot(data, aes(Date, Price)) +
   labs(title = "Stock Price Over Time", subtitle = "Dashed line = 2022-11-30", color = "")
 ```
 
-## Fit ARIMA Model
+## 3.2 Fit ARIMA Model
 Using the ACF and PACF plots, we can determine the appropriate order of the ARIMA model. According to @fig-logacf, the ACF gradually tails off, suggesting the presence of autoregressive behavior. According to @fig-logpacf, there are strong spikes at lags 2, 4, 7, and 8, and several other significant lags. Based on these patterns, ARIMA(1,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(7,1,7), and ARIMA(8,1,8) models were fitted to the price data to capture the time series.
 ```{r}
 #| eval: true
@@ -545,7 +549,7 @@ ggplot() +
 This project tests whether the rise of AI has significantly affected the behavior of technology sector stock returns. Using the XLK ETF price data from 2019 to 2026, we transformed the series into log returns to make the data stationary and applied AR(1), MA(1), and ARMA (1,1) time series models. The result suggests that stock return pattern remained relatively stable before and after the emergence of AI, indicating that AI has not yet had a significant impact on the technology stock market price. More broadly, this shows that while AI is often seen as a transformative force, its impact on financial markets may not be immediately reflected in stock return fluctuations. 
 
 ## Limitations
-There are some potential limitations for the dataset. One of the limitations is that there's possibility for State Street to rebalance the stock composition over time, which means the dataset may not remain fully consistent throughout the study period. This could reduce the reliability of comparing stock performance across different years and weaken the robustness of analysis. 
+There are some potential limitations for the dataset. One of the limitations is that there's possibility for State Street to rebalance the stock composition over time, which means the dataset may not remain fully consistent throughout the study period. The companies in the XLK ETF are selected based on the GICS. However, the GICS structure is reviewed annually, meaning State Street need to adjust the XLK portfolio at least on a yearly base. This could reduce the reliability of comparing stock performance across different years and weaken the robustness of analysis. 
 
 Another limitation is the dependency of the dataset. In Section 3, we found out the time series data points remain highly correlated even after the data transformation. For instance, the QQ plot indicates deviations from normality, suggesting that model assumptions may not hold and prediction intervals may be unreliable. In addition, our model focuses on the short-term impacts after the release of ChatGPT, but the effect of AI may be better reflected in a long term trend rather than a boom. The log transformation may mask the underlying long term trend, because it removes the trend to make the data stationary. The log transformation only focuses on daily changes rather than long-term structural changes. As a results, model based on the log transformation is better at studying short-term market reaction but may be less effective at capturing long-term changes in the market over time. 
 
