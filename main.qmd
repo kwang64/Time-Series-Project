@@ -539,9 +539,10 @@ ggplot() +
   labs(title = "Price Forecast", x = "Date", y = "Price")
 ```
 
+\newpage
+
 ## Summary 
 This project tests whether the rise of AI has significantly affected the behavior of technology sector stock returns. Using the XLK ETF price data from 2019 to 2026, we transformed the series into log returns to make the data stationary and applied AR(1), MA(1), and ARMA (1,1) time series models. The result suggests that stock return pattern remained relatively stable before and after the emergence of AI, indicating that AI has not yet had a significant impact on the technology stock market price. More broadly, this shows that while AI is often seen as a transformative force, its impact on financial markets may not be immediately reflected in stock return fluctuations. 
-
 
 ## Limitations
 There are some potential limitations for the dataset. One of the limitations is that there's possibility for State Street to rebalance the stock composition over time, which means the dataset may not remain fully consistent throughout the study period. This could reduce the reliability of comparing stock performance across different years and weaken the robustness of analysis. 
