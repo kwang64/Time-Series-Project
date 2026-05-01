@@ -145,7 +145,7 @@ after_data  <- data |> filter(Date >= cutoff)
 ```
 
 
-The autocorrelation function (ACF) plot in @fig-rawacf shows demonstrates a strong correlation between data points, indicating this time series is non-stationary and does not exhibits white noise characteristics. The ACF values persist well beyond the significance boundaries and decat as a very slow rate. This high correlation is explanable since the stock prices are accumulated based on the previous day's close price. Therefore, data transformation is required to acheive stationarity prior to modeling. 
+The autocorrelation function (ACF) plot in @fig-rawacf demonstrates a strong correlation between data points, indicating this time series is non-stationary and does not exhibits white noise characteristics. The ACF values persist well beyond the significance boundaries and decat as a very slow rate. This high correlation is explanable since the stock prices are accumulated based on the previous day's close price. Therefore, data transformation is required to acheive stationarity prior to modeling. 
 
 ```{r}
 #| label: fig-logreturn
