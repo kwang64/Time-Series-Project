@@ -14,23 +14,32 @@ library(astsa)
 
 
 # 1 Introduction 
-Technology stocks have accounted for 32% of global equity returns and 40% of total U.S. equity market returns since 2010 (Goldman Sachs, 2024), highlighting the dominant role of the technology sector in modern financial markets. Large-cap firms, such as Apple and Microsoft, represent a substantial share of total market capitalization; consequently, their performance increasingly shapes the trajectory of major stock indices, including the S&P 500 and the NASDAQ Composite. Because technology companies are largely valued based on expectations of future innovation and scalability, breakthroughs can trigger significant revisions in investor sentiment, often leading to substantial movements in stock prices.
+Artificial Intelligence (AI) has been a hot topic in recent years, with it's wide applications in scientific discovery, advanced cybersecurity, and personalized AI agents. In the stock market, technology stock have accounted for 32% of global equity returns and 40% of total U.S. equity market returns since 2010 (Goldman Sachs, 2024), playing a dominant role in modern financial markets. Large-cap firms, such as Apple and Microsoft, represent a substantial share of total markets capitalization; consequently, their performance increasingly shapes the trajectory of major stock indices, including the S&P 500 and the NASDAQ Composite (Yahoo Finance). Since Technology companies are largely valued based on expectations of future innovation and scalability, breakthroughs can trigger significant revisions in investor sentiment, leading to movement in stock prices. 
 
-The introduction of new technology significantly impacts a firm's business model. For technology-centric companies in particular, launching a novel product often increases the company's valuation (McKinsey, 2016). As several tech giants have launched flagship AI products, such as Google’s Gemini and Anthropic’s Claude, their market valuations and stock prices have shifted accordingly. Although OpenAI is not publicly traded, the "hard launch" of ChatGPT in November 2022 significantly increased OpenAI’s private valuation and attracted substantial investment, with its estimated worth skyrocketing from roughly $20 billion to $85.2 billion by 2026 (Barrientos, 2026).
+Breakthrough in new technology also impacts a firm's business model. For technology-centric companies in particular, launching a novel product pften increases company's net valuation (McKinsey, 2016). As several tech giants have launched flagship AI products, such as Gemini from Google and Claude from Anthropic, their market valuations and stock prices have shifted accordingly (Investing.com, 2026). The impact of novel AI product is seemly significant since it can impacts the company's valuation that the company does not even need to be publicly traded. The hard launch of ChatGPT in November 2022 significantly increased OpenAI's, a non-profit artificial intelligence research company, private valuation and attracted substantial investment, with its estimated worth skyrockeying from roughly $20 billion to $85.2 billion by 2026  (Barrientos, 2026). 
 
-The adoption of AI applications has reshaped market narratives surrounding technological growth and productivity. Beyond the firms directly launching AI models, companies perceived as key beneficiaries of AI infrastructure, most notably NVIDIA Corporation, have also experienced significant revaluations. This shift suggests that innovation shocks may influence not only short-term prices but also the broader structural dynamics of the technology sector.
+Furthermore, the adoption of AI applications has also reshaped market narratives surrounding technological growth and productivity. Beyond the firms that directly launching AI models, companies perceived as key beneficiaries of AI infrastructure, most notably the GPU manufacturing company NVIDIA Corporation, have also experienced significant revaluations (Morningstar, 2026). This shift suggests that innovation shocks may influence not only short-term prices but also the broader structural dynamics of the overall technology sector.
 
-Understanding whether such a technological breakthrough corresponds to a lasting change in market behavior is critical for investors and policymakers. Persistent shifts in return patterns can affect risk assessment, portfolio allocation, and forecasting models. Financial return series are time-dependent and often exhibit changes in volatility and growth dynamics. If the emergence of generative AI has altered investor expectations in a sustained way, this effect may manifest as a structural break in the return-generating process.
+With the crucial role of technology stock in the general financial market and AI product's impacts on company's evaluation, we want to investigate whether the technological breakthrough impact the technology sector stock market. This report investigates:
 
-This paper investigates whether the emergence of generative AI signaled a fundamental change in the behavior of technology-sector stock returns. We evaluate this change by comparing stock performance before and after the launch of ChatGPT. Specifically, we analyze the Technology Select Sector SPDR Fund (XLK) using ARIMA models to examine whether the release of ChatGPT corresponds to a statistically significant shift in XLK price dynamics from 2017 to 2024.
+- Did the stock return pattern changes after the emergence of AI products?
+
+- What's the predicted stock return based on current stock market trend? 
+
+Specifically, we evaluate this change by analyzing the Technology Select Sector SPDR Fund (XLK) using ARIMA models to examine whether the release of ChatGPT corresponds to a statistically significant shift in XLK price dynamics from 2017 to 2024. 
+
+Understanding whether such a technological breakthrough corresponds to a lasting change in market behavior is crucial for investors and policymakers. Persistent shifts in return pattern can affect risk assessment, portfolio allocation, and forecasting models in financial market analysis. Financial return series are time-dependent and often exhibit changes in volatility and growth dynamics. If the emergence of artificial intelligence has altered investor expectations, this effect may manifest as a structural break in the return-generating process.
+
+# 2 Methodology
+
+## 2.1 Data Overview 
+
+This report uses the daily XLK fund return price from Investing.com, a financial data platform that offers real-time data. The XLK stock price is collected by S&P Dow Jones Indices and State Street Global Advisory. S&P Dow Jones Indices is in charge of creating the company benchmark on entering the technology company stock pool. The State Street Global Advisors selected particular stocks into the combination of the XLK stock. 
 
 We chose the XLK because it's a comprehensive fund that captures an effective representation of the technology sector of the S&P 500 Index. The XLK has a 4-star in the Morningstar rating by March 2026, indicating an above-average performance that the XLK is in the top 22.5% to 32.5% of technology category. The XLK ETF provides precise exposure to companies from technology hardware, storage and peripherals; software; communications equipment; semiconductors and semiconductor equipment; IT services; and electronic equipment, instruments and components industries (State Street). This feature allows investors to take strategic or tactical positions at a more targeted level than traditional style based investing. The companies in the XLK are selected from the S&P 500 based on the Global Industry Classification Standard (GICS) where companies are assigned to a single classification based on revenue. 
 
-# 2 Data
+## 2.2 Data Collection 
 
-The XLK stock price we are looking at is collected by S&P Dow Jones Indices and State Street Global Advisory. S&P Dow Jones Indices is in charge of creating the company benchmark on entering the technology company stock pool. The State Street Global Advisors selected particular stocks into the combination of the XLK stock. The data we are using is collected from the investing.com website, a financial data platform that provides public real-time market data directly from stock exchanges such as the New York Stock Exchange and NASDAQ. 
-
-## 2.1 Data Overview
 Using the dataset from the investing website, we derive the following variables for the analysis:
 
 - `Price` (in USD): The final price at which the ETF traded when the stock exchange closed (typically 4:00 PM EST).
@@ -45,9 +54,9 @@ Using the dataset from the investing website, we derive the following variables 
 
 The dataset comprises daily observations spanning from January 3, 2017, to March 28, 2026. This time frame was specifically selected to ensure that the launch of ChatGPT (November 30, 2022) serves as a central pivot point, providing a balanced sample size for comparing pre- and post-innovation market dynamics
 
-## 2.2 Data Cleaning
+## 2.3 Data Cleaning
 
-In the original dataset downloaded from the investing website, we observed outliers that are doubled the price of the remaining data points. We also found that for the weekends, prices are carried over from the Friday of the same week. These data points correspond to weekend days, and they have no data for the variable, `Vol.`. We decided to remove these points because they are not consistent with the general pattern, which they doubled the Friday price. Lastly, we split the dataset into two groups: `before_data` and `after_data`, using November 30, 2022 (the release date of ChatGPT) as the cutoff.
+In the raw dataset from the investing website, we observe the point information on weekends are carried over from the Friday of the same week with empty number in `Vol.`. We removed these points since they are not consistent with the general pattern and can be misleading in identifying the long-term price fluctuation. We then splitted the dataset into two groups: `before_data` and `after_data`, using the time stamp November 30, 2022 (the release date of chatGPT) as the cutoff. 
 
 ```{r, include=FALSE}
 #load data
@@ -59,17 +68,17 @@ data <- read.csv("XLK ETF Stock Price History.csv")
 data$Date <- as.Date(data$Date, format = "%m/%d/%Y") 
 data <- data |>
   filter(trimws(Vol.) != "")
-```
 
-```{r, include=FALSE}
 #split into two time frames
 cutoff <- as.Date("2022-11-30")
 before_data <- data[data$Date < cutoff, ]
 after_data  <- data[data$Date >= cutoff, ]
 ```
 
+
 ```{r}
 #| label: tbl-price
+#| tbl-cap: "Summary Statistics of Stock Price" 
 #| echo: false
 #| message: false
 #| warning: false
@@ -80,22 +89,23 @@ data |>
     min_price = min(Price, na.rm = TRUE),
     max_price = max(Price, na.rm = TRUE)
   ) |>
-  kable(caption = "Summary Statistics of Stock Price")
+  kable()
 ```
 
-@tbl-price shows the mean, standard deviation, minimum and maximum of the stock price between 2017/1/3 to 2026/3/27. 
-
-# Section 3. Analytic Methods 
-
-```{r, include=FALSE}
-plot(data$Date, data$Price, type = "l", xlab="Date", ylab="Price", main = "Stock price over time (2019 - 2026)")
+```{r}
+#| label: fig-raw
+#| fig-cap: "Raw Stock Price Over Time"
+#| eval: true
+#| echo: false
+#| message: false
+#| warning: false
+ggplot(data, aes(Date, Price)) +
+  geom_line() +
+  geom_vline(xintercept = cutoff, linetype = "dashed", color = "red") +
+  labs(title = "Stock Price Over Time", subtitle = "Dashed line = 2022-11-30")
 ```
+@tbl-price summarized the descriptive statistics for the stock price from January 3, 2017, to March 27, 2026, including the mean, standard deviation, and range. A more intuitive historical price trajectory is illustrated in @fig-raw, where the vertical red dashed line marks the official release of ChatGPT. Overall, the stock shows a sustained upward trend throughout the observed period. 
 
-```{r, include=FALSE}
-par(mfrow = c(1,2))
-plot(before_data$Date, before_data$Price, type = "l")
-plot(after_data$Date, after_data$Price, type = "l", col = "blue")
-```
 
 ```{r, include=FALSE}
 #detrend
@@ -111,19 +121,8 @@ acf(data$detrended_price)
 
 
 ```{r}
-#| label: fig-raw
-#| eval: true
-#| echo: false
-#| message: false
-#| warning: false
-ggplot(data, aes(Date, Price)) +
-  geom_line() +
-  geom_vline(xintercept = cutoff, linetype = "dashed", color = "red") +
-  labs(title = "Stock Price Over Time", subtitle = "Dashed line = 2022-11-30")
-```
-@fig-raw shows the stock price over time. The red dashed line indicates the time when ChatGPT was released. Overall, the stock price shows a general upward trend during the period shown.
-```{r}
 #| label: fig-rawacf
+#| fig-cap: "Autocorrelation Function (ACF) of Raw Stock Price."
 #| eval: true
 #| echo: false
 #| message: false
@@ -131,7 +130,6 @@ ggplot(data, aes(Date, Price)) +
 acf(data$Price, main="ACF of Raw Stock Price")
 ```
 
-@fig-rawacf indicates that the time series is not white noise, as the ACFs are out of the boundary and decay very slowly, which looks like a unit root process. Thus, we need to transform the data to make it stationary before model fitting. For stock data, taking the natural log is a common way to transform the data. The first difference of the log price series, known as the log return, is then used to remove the trend and produce a stationary series suitable for model estimation.
 ```{r, include=FALSE}
 #| eval: true
 #| echo: false
@@ -146,46 +144,44 @@ before_data <- data |> filter(Date < cutoff)
 after_data  <- data |> filter(Date >= cutoff)
 ```
 
+
+The autocorrelation function (ACF) plot in @fig-rawacf shows demonstrates a strong correlation between data points, indicating this time series is non-stationary and does not exhibits white noise characteristics. The ACF values persist well beyond the significance boundaries and decat as a very slow rate. This high correlation is explanable since the stock prices are accumulated based on the previous day's close price. Therefore, data transformation is required to acheive stationarity prior to modeling. 
+
 ```{r}
 #| label: fig-logreturn
+#| fig-cap: "Daily Log Returns of Stock Price (2017–2026)."
 #| eval: true
 #| echo: false
 #| message: false
 #| warning: false
 ggplot(data, aes(x = Date, y = log_return)) +
-  geom_line() +
+  geom_line(linewidth = 0.4) +
   geom_vline(xintercept = cutoff, linetype = "dashed", color ="red") +
-  labs(title = "Log Return Over Time",
-       subtitle = "Dashed line = 2022-11-30",
-       x = "Date", y = "Log Return")
+  labs(title = "Daily Log Returns of Stock Price",
+    subtitle = "Vertical dashed line indicates ChatGPT release on November 30, 2022",
+    x = "Year", y = "Log Return")
 ```
-@fig-logreturn shows the log return over time after transformation. The log return fluctuates around zero, and the fluctuations are small for most of the time. However, there are a few large spikes. The biggest fluctuations occur around 2020 when the pandemic began. This suggests that the pandemic caused substantial uncertainty and sharp movements in the market.
+
+
 ```{r}
 #| label: fig-logacf
+#| fig-cap: "Autocorrelation Function (ACF) of Log Return."
 #| eval: true
 #| echo: false
 #| message: false
 #| warning: false
 acf(na.omit(data$log_return), main="ACF of log return")
 ```
-
-```{r}
-#| label: fig-logpacf
-#| eval: true
-#| echo: false
-#| message: false
-#| warning: false
-pacf(na.omit(data$log_return), main="PACF of log return")
-```
-@fig-logreturn suggests the mean is around zero, which suggests log return time series might be stationary. But @fig-logacf shows the ACF of log return, where several spikes that are not within the bound. Therefore, an Augmented Dickey-Fuller (ADF) test was conducted to formally determine whether the series is stationary.
 ```{r, include=FALSE}
 adf.test(na.omit(data$log_return))
 ```
-The ADF test has a p value of 0.01, suggesting log return is stationary. 
+
+
+To stabalize the variance and ensure stationarity, we applied a natural logarithmic transformation followed by first-order differencing. @fig-logreturn shows the log return over time after transformation. While the log return mostly fluctuates around a mean of zero with small fluctuations, there are few large spikes. The biggest fluctuations occur around 2020 when the pandemic began, suggesting that the pandemic can might casue substantial uncertainty and sharp movements in the market. Although @fig-logacf shows there still exists few autocorrelation coefficients outside the significance boundaries, the Augmented Dickey-Fuller (ADF) test was conducted for a formal assessment. The test yielded a p-value of 0.01, providing strong empirical evidence to reject the null hypothesis of a unit root and confirming that the log return series is stationary.
 
 # 3 Method 
 
-## 3.1 Assess difference between before AI and after AI
+## 3.1 Compare log return using regression
 ```{r}
 #| label: tbl-log-return
 #| tbl-cap: "Summary Statistics of Stock Price"
@@ -205,16 +201,14 @@ data |>
   ) |>
   kable()
 ```
-According to table @tbl-log-return, the mean log return before and after the appearance of ChatGPT is both close to zero. To test whether there is a difference on price before and after ChatGPT appearance, a regression model with a dummy variable $D_t$ as the predictor was fitted. 
-$$Price=\beta_0 + \beta_1 + \beta_2D_t$$
-where $D_t=0$ is before the appearance of ChatGPT, and $D_t=1$ is after the appearance of ChatGPT. A two sample mean test can be used to determine whether $D_t$ is significant. The null hypothesis is that the mean price in the two periods are equal, while the alternative hypothesis is that they are different. 
+According to table @tbl-log-return, the mean log return before and after the appearance of ChatGPT is both close to zero. To test whether there is a difference on log return before and after ChatGPT appearance, a regression model with a dummy variable $D_t$ as the predictor was fitted. 
+$$log(return)=\beta_0 + \beta_1 D_t$$
+where $D_t=0$ is before the appearance of ChatGPT, and $D_t=1$ is after the appearance of ChatGPT. A two sample mean test can be used to determine whether $D_t$ is significant. The null hypothesis is that the mean log returns in the two periods are equal, while the alternative hypothesis is that they are different. 
 
 ```{r, include=FALSE}
-data <- data[order(data$Date), ]
-data$time_index <- 1:nrow(data)
-
 data$AI_dummy <- ifelse(data$Date >= as.Date("2022-11-30"), 1, 0)
-model <- lm(Price ~ time_index + AI_dummy, data = data)
+
+model <- lm(log_return ~ AI_dummy, data = data)
 ```
 
 ```{r}
@@ -226,26 +220,7 @@ kable(
   col.names = c("Estimate", "Std. Error", "t value", "Pr(>|t|)")
 ) 
 ```
-The p value of the dummy variable is 0.008, which is greater than 0.001. Thus, we fail to reject the null hypothesis, and conclude that there is no difference on the price values before and after the appearance of AI. From @fig-price-reg-model, we do not see a significant difference between the regression line of the two time periods. 
-
-```{r}
-#| label: fig-price-reg-model
-#| eval: true
-#| echo: false
-#| message: false
-#| warning: false
-data$predicted <- predict(model, newdata = data)
-
-ggplot(data, aes(Date, Price)) +
-  geom_line() +
-  geom_line(data = subset(data, AI_dummy == 0), 
-            aes(y = predicted, color = "Before AI"), linewidth = 1) +
-  geom_line(data = subset(data, AI_dummy == 1), 
-            aes(y = predicted, color = "After AI"), linewidth = 1) +
-  geom_vline(xintercept = cutoff, linetype = "dashed", color = "red") +
-  scale_color_manual(values = c("Before AI" = "steelblue", "After AI" = "tomato")) +
-  labs(title = "Stock Price Over Time", subtitle = "Dashed line = 2022-11-30", color = "")
-```
+The p value of the dummy variable is 0.895, which is greater than 0.05. Thus, we fail to reject the null hypothesis, and conclude that there is no difference on the mean log return values before and after the appearance of AI. 
 
 ## 3.2 Fit ARIMA Model
 Using the ACF and PACF plots, we can determine the appropriate order of the ARIMA model. According to @fig-logacf, the ACF gradually tails off, suggesting the presence of autoregressive behavior. According to @fig-logpacf, there are strong spikes at lags 2, 4, 7, and 8, and several other significant lags. Based on these patterns, ARIMA(1,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(7,1,7), and ARIMA(8,1,8) models were fitted to the price data to capture the time series.
@@ -301,10 +276,9 @@ all_results |> kable()
 The ARIMA(7,1,7) has the smallest AICc value among all the models. Therefore, we pick ARIMA(7,1,7) as our best model.
 
 ## Forcasting
-### Benchmark Methods
-We are interested in how significant the data after November 30, 2022, when ChatGPT got launched, is to forecasting future stock market prices. We will being using data frames of different time sets: January 3, 2017 to March 27, 2026, January 3, 2017 to November 30, 2022, and November 30, 2022 to March 27, 2026. The forecast models we will be using three of the "benchmark" methods: Mean method, Naive method and Seasonal naive method. Mean method forecasts all future values as equal to the average (or mean) of the training set. Naive method set all forecast values to be the value of the last observation of the historical data. Seasonal naive method set each forecast to be equal to the last observed value from the same season. We tested if there is a weekly seasonality. Drift method and decomposition method, which both looks at the amount of change over time or the trend, seem unnecessary with log return data because we have already applied differencing.
+We are interested in how significant the data after 2022/11/30, when ChatGPT got launched, is to forecasting future stock market prices. We will being using data frames of different time sets: 2017/1/3 - 2026/3/27, 2017/1/3 - 2022/11/30 and 2022/11/30 - 2026/3/27. (Date) The forecast models we will be using three of the "benchmark" methods: Mean method, Naive method and Seasonal naive method. (descibe methods) Drift method and decomposition method seem unnecessary with log return data because we have already removed the trend.
 
-First, we aimed to examine whether AI has had an unexpected impact on the stock market and contributed to its fluctuations. We would like to use data from January 3, 2017 to November 30, 2022 to forecast data after November 30, 2022.
+First, we aimed to examine whether AI has had an unexpected impact on the stock market and contributed to its fluctuations. We would like to use data from 2017/1/3 - 2022/11/30 to forecast data after 2022/11/30.
 
 ```{r, include=FALSE}
 library(zoo)
@@ -334,7 +308,7 @@ x_test1 <- log_return_ts[index(log_return_ts) > as.Date("2022-11-30")]
 #forecasts
 x_mean1 <- rep(mean(x_train1), length(x_test1)) #mean
 x_naive1 <- rep(tail(x_train1,1), length(x_test1)) #naive
-x_seasonal1 <- rep(c(tail(x_train1, 7)), length(x_test1)) #seasonal
+x_seasonal1 <- rep(c(tail(x_train1, 4)), length(x_test1)) #seasonal
 
 # forecast errors
 mean_errors1 <- x_test1 - x_mean1
@@ -380,7 +354,7 @@ forecast_table <- data.frame(
 kable(forecast_table, digits = 5, caption = "Forecast Errors")
 ```
 
-According to @tbl-forecast_errors MAE (Mean Absolute Error) and RMSE (Root Mean Squared Error), which measure the difference between actual and predicted values, were small for the mean method but also all these benchmark methods. It appears that the data prior to November 30, 2022 can effectively predict the data following the cutoff point. Furthermore, this suggests that AI have not yet contribute a significant impact in the stock market. As a result, we will use the entire time frame, allocating 80% for training and 20% for testing, to build a forecast model in predict prices in future 2026. 
+According to @tbl-forecast_errors(explain meaning), all the scaled dependent errors are small, even for these easier approaches. It appears that the data prior to 2022/11/30 can effectively predict the data following the cutoff point. Furthermore, this suggests that AI have not yet contribute a significant impact in the stock market. As a result, we will use the entire time frame, allocating 80% for training and 20% for testing, to build a forecast model in predict prices in 2026. 
 
 ```{r, include=FALSE}
 # entire data set 2017/1/3 - 2026/3/27
@@ -393,7 +367,7 @@ x_test2 <- log_return_ts[index(log_return_ts) > as.Date("2024-05-21")]
 #forecasts
 x_mean2 <- rep(mean(x_train2), length(x_test2)) #mean
 x_naive2 <- rep(tail(x_train2,1), length(x_test2)) #naive
-x_seasonal2 <- rep(c(tail(x_train2, 7)), length(x_test2)) #seasonal
+x_seasonal2 <- rep(c(tail(x_train2, 4)), length(x_test2)) #seasonal
 
 # forecast errors
 mean_errors2 <- x_test2 - x_mean2
@@ -427,27 +401,6 @@ naive_MAPE <- mean(abs(naive_p_error), na.rm = TRUE)
 seasonal_MAPE <- mean(abs(seasonal_p_error), na.rm = TRUE)
 ```
 
-```{r, include=FALSE}
-n_train <- length(x_train2)
-train_diffs <- abs(diff(as.numeric(x_train2), lag = 1))
-nonseasonal_scale <- mean(train_diffs)
-nonseasonal_scale_sq <- mean(train_diffs^2)
-
-# for(i in 2:n){
-#   train_MAE <- abs(x_train2[i] - x_train2[i-1])
-# }
-# nonseasonal_scale <- sum(train_MAE)/(n-1)
-# nonseasonal_scale_sq <- sum(train_MAE^2)/(n-1)
-
-mean_MASE <- mean(abs(mean_errors2/nonseasonal_scale), na.rm = TRUE)
-naive_MASE <- mean(abs(naive_errors2/nonseasonal_scale), na.rm = TRUE)
-seasonal_MASE <- mean(abs(seasonal_errors2/nonseasonal_scale), na.rm = TRUE)
-
-mean_MASSE <- sqrt(mean(mean_errors2^2/nonseasonal_scale_sq, na.rm = TRUE))
-naive_MASSE <- sqrt(mean(naive_errors2^2/nonseasonal_scale_sq, na.rm = TRUE))
-seasonal_MASSE <- sqrt(mean(seasonal_errors2^2/nonseasonal_scale_sq, na.rm = TRUE))
-```
-
 ```{r}
 #| label: tbl-forecast_errors_full
 #| eval: true
@@ -458,15 +411,13 @@ seasonal_MASSE <- sqrt(mean(seasonal_errors2^2/nonseasonal_scale_sq, na.rm = TRU
 forecast_table <- data.frame(
   Method = c("Mean", "Naive", "Seasonal"),
   MAE = c(mean_MAE2, naive_MAE2, seasonal_MAE2),
-  RMSE = c(mean_RMSE2, naive_RMSE2, seasonal_RMSE2),
-  MASE = c(mean_MASE, naive_MASE, seasonal_MASE),
-  MASSE = c(mean_MASSE, naive_MASSE, seasonal_MASSE)
+  RMSE = c(mean_RMSE2, naive_RMSE2, seasonal_RMSE2)
 )
 
 kable(forecast_table, digits = 5, caption = "Forecast Errors-full model")
 ```
 
-@tbl-forecast_errors_full shows the naive method has the lowest MAE and mean method is has the lowest RMSE. MAPE (Mean Absolute Percentage Error) is a percentage-based error metric that scales forecast errors relative to the actual values. We did not include MAPE here for comparison, because our log return data moves around 0, where some small values here make MAPE enormous and not as a good parameter to look at. MASE (Mean Absolute Scaled Error) and MASSE (Root Mean Squared Scaled Error) are scaled error metrics, and they works by scaling errors based on the training MAE from a simple forecast method. This makes them stable because the denominator is a fixed constant derived from the training data, providing a more informative alternative when MAPE fails to give meaningful results. Lowest MASE and MASSE suggest the Mean method is the best, so we will use mean method to do forecasting.
+@tbl-forecast_errors_full shows the mean method is the best with lowest MAE and RMSE. We did not put MAPE here for comparison, because our log return data moves around 0, where some small values here make MAPE enormous and not as a good parameter to look at.
 
 ```{r, echo = FALSE}
 qqnorm(log_return_ts, main = "QQ plot")
@@ -474,14 +425,11 @@ qqnorm(log_return_ts, main = "QQ plot")
 hist(log_return_ts, main = "histogram")
 ```
 
-Next, we construct a prediction interval for the mean method forecast model. While the histogram suggests the residuals are approximately normally distributed, the QQ-plot indicates that the log returns deviate from normality, violating classic assumptions. This implies that the resulting prediction interval might not be reliable.
+Next, we would like to also make a prediction interval for this forecast model.[ACF:( ].  The histogram looks normal, however qq-plot reveals that log return does not satisfy the linearity assumption. This suggests that our prediction interval is off. 
 
-```{r}
-#| label: fig-full-mean-prediction-int
-#| eval: true
-#| echo: false
-#| message: false
-#| warning: false
+(Will do ARIMA but also keeping this)
+
+```{r, echo = FALSE}
 #prediction interval
 forecast_time <- time(x_test2)
 forecast <- x_mean2 
@@ -505,53 +453,15 @@ ggplot(data = original_data, aes(x = time, y = points)) + geom_line( ) +
               fill = "lightblue", alpha = 0.5)
 
 ```
-### ARIMA forecasts
-
-Using ARIMA(7,1,7), we want to forecast the data in the next 30 days starting March 28, 2026. 
-```{r, include=FALSE}
-forecasted <- sarima.for(ts(data$log_price), n.ahead = 30, p = 7, d = 1, q = 7, no.constant = TRUE)$pred
-final_forecasted <- exp(forecasted)
-```
-
-```{r}
-#| label: fig-full-arima-forecast
-#| eval: true
-#| echo: false
-#| message: false
-#| warning: false
-forecast_dates <- seq(max(data$Date) + 1, by = "day", length.out = 30)
-forecast_df <- data.frame(Date = forecast_dates, Price = final_forecasted)
-
-ggplot() +
-  geom_line(data = data, aes(x = Date, y = Price)) +
-  geom_point(data = forecast_df, aes(x = Date, y = Price), color = "red", size = 2, shape = 1) +
-  geom_line(data = forecast_df, aes(x = Date, y = Price), color = "red", linetype = "dashed") +
-  labs(title = "Price Forecast", x = "Date", y = "Price")
-```
-
-```{r}
-#| label: fig-chopped-off-arima-forecast
-#| eval: true
-#| echo: false
-#| message: false
-#| warning: false
-ggplot() +
-  geom_line(data = data, aes(x = Date, y = Price)) +
-  geom_point(data = forecast_df, aes(x = Date, y = Price), color = "red", size = 2, shape = 1) +
-  geom_line(data = forecast_df, aes(x = Date, y = Price), color = "red", linetype = "dashed") +
-  coord_cartesian(xlim = c(as.Date("2025-01-01"), max(forecast_dates))) +
-  labs(title = "Price Forecast", x = "Date", y = "Price")
-```
-
-\newpage
 
 ## Summary 
 This project tests whether the rise of AI has significantly affected the behavior of technology sector stock returns. Using the XLK ETF price data from 2019 to 2026, we transformed the series into log returns to make the data stationary and applied AR(1), MA(1), and ARMA (1,1) time series models. The result suggests that stock return pattern remained relatively stable before and after the emergence of AI, indicating that AI has not yet had a significant impact on the technology stock market price. More broadly, this shows that while AI is often seen as a transformative force, its impact on financial markets may not be immediately reflected in stock return fluctuations. 
 
+
 ## Limitations
 There are some potential limitations for the dataset. One of the limitations is that there's possibility for State Street to rebalance the stock composition over time, which means the dataset may not remain fully consistent throughout the study period. The companies in the XLK ETF are selected based on the GICS. However, the GICS structure is reviewed annually, meaning State Street need to adjust the XLK portfolio at least on a yearly base. This could reduce the reliability of comparing stock performance across different years and weaken the robustness of analysis. 
 
-Another limitation is the dependency of the dataset. In Section 3, we found out the time series data points remain highly correlated even after the data transformation. For instance, the QQ plot indicates deviations from normality, suggesting that model assumptions may not hold and prediction intervals may be unreliable. In addition, our model focuses on the short-term impacts after the release of ChatGPT, but the effect of AI may be better reflected in a long term trend rather than a boom. The log transformation may mask the underlying long term trend, because it removes the trend to make the data stationary. The log transformation only focuses on daily changes rather than long-term structural changes. As a results, model based on the log transformation is better at studying short-term market reaction but may be less effective at capturing long-term changes in the market over time. 
+Another limitation is the dependency of the dataset. In the data analysis, we noticed few large spikes in the log return plot, suggeting factors like pandemics may also attributes to the stock price fluctuation. In Section 3, we found out the time series data points remain highly correlated even after the data transformation. For instance, the QQ plot indicates deviations from normality, suggesting that model assumptions may not hold and prediction intervals may be unreliable. In addition, our model focuses on the short-term impacts after the release of ChatGPT, but the effect of AI may be better reflected in a long term trend rather than a boom. The log transformation may mask the underlying long term trend, because it removes the trend to make the data stationary. The log transformation only focuses on daily changes rather than long-term structural changes. As a results, model based on the log transformation is better at studying short-term market reaction but may be less effective at capturing long-term changes in the market over time. 
 
 Also, AR, MA, ARMA are all models that are only a function of the time series itself. They do not include other important factors, such as government policy or economic policy changes. There are many other factors that affects the stock market that we did not incorporate, such as economic indicators and interest rates. Since stock market is influenced by many external variables, excluding these factors may limit the strength and forecasting accuracy of the models.
 
