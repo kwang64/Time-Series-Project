@@ -107,6 +107,7 @@ ggplot(data, aes(Date, Price)) +
 
 @tbl-price summarized the descriptive statistics for the stock price from January 3, 2017, to March 27, 2026, including the mean, standard deviation, and range. A more intuitive historical price trajectory is illustrated in @fig-raw, where the vertical red dashed line marks the official release of ChatGPT. Overall, the stock shows a sustained upward trend throughout the observed period.
 
+
 ```{r, include=FALSE}
 #detrend
 model_data <- data.frame(
@@ -129,6 +130,93 @@ acf(data$detrended_price)
 acf(data$Price, main="ACF of Raw Stock Price")
 ```
 
+
+The autocorrelation function (ACF) plot in @fig-rawacf demonstrates a strong correlation between data points, indicating this time series is non-stationary and does not exhibits white noise characteristics. The ACF values persist well beyond the significance boundaries and decay at a very slow rate. This high correlation is explainable since the stock prices are accumulated based on the previous day's close price. Therefore, data transformation is required to achieve stationarity prior to modeling.
+
+
+
+# 3 Methods and Results
+
+### 3.1 Fitting a regression model on price
+
+```{r}
+#| label: tbl-log-return
+#| tbl-cap: "Summary Statistics of Stock Price"
+#| echo: false
+#| eval: false
+#| message: false
+#| warning: false
+#| results: 'hide'
+data |>
+  mutate(period = ifelse(Date < cutoff, "Before AI", "After AI")) |>
+  summarise(
+    Mean = mean(log_return, na.rm = TRUE),
+    SD = sd(log_return, na.rm = TRUE),
+    .by = period
+  ) |>
+  mutate(
+    Mean = round(Mean, 5),
+    SD = round(SD, 5)
+  ) |>
+  kable()
+```
+
+We fit a regression model with a dummy variable $D_t$ as the predictor. 
+$$\widehat{Price}=\hat\beta_0 + \hat\beta_1t + \hat\beta_2D_t + \hat\beta_3 tD_t$$ where $D_t=0$ represents the period before the appearance of ChatGPT, and $D_t=1$ represents the period after. 
+<!-- The significance of $D_t$ and the interaction term $tD_t$ is used to assess whether there are differences between the two periods through a two sample mean test. The null hypothesis is that there is no difference in price behavior between the two periods, while the alternative hypothesis states that there is a difference.-->
+
+```{r, include=FALSE}
+data <- data[order(data$Date), ]
+data$time_index <- 1:nrow(data)
+
+data$AI_dummy <- ifelse(data$Date >= as.Date("2022-11-30"), 1, 0)
+model <- lm(Price ~ time_index * AI_dummy, data = data)
+```
+
+```{r}
+#| echo: false
+#| results: 'hide'
+mod_table <- summary(model)$coefficients
+rownames(mod_table) <- c("Intercept", "time", "Dt", "time * Dt")
+kable(
+  round(mod_table, 3),
+  caption = "Summary Table for Regression Model",
+  col.names = c("Estimate", "Std. Error", "t value", "Pr(>|t|)")
+) 
+```
+
+<!---Both the dummy variable and the interaction term are statistically significant, with p-values below 0.01, leading us to reject the null hypothesis. This indicates that prices behaved differently before and after the appearance of AI, not only in level but also in their trajectory over time.--->
+As shown in @fig-price-reg-model, the two regression lines display different slopes across the two periods. The slope of price over time is steeper after the appearance of AI, meaning the price increased faster during this period.
+
+```{r, fig.pos='H'}
+#| label: fig-price-reg-model
+#| fig-cap: "Fitted regression lines for price over time, separated by pre and post-AI periods."
+#| eval: true
+#| echo: false
+#| message: false
+#| warning: false
+data$predicted <- predict(model, newdata = data)
+
+ggplot(data, aes(Date, Price)) +
+  geom_line() +
+  geom_line(data = subset(data, AI_dummy == 0), 
+            aes(y = predicted, color = "Before AI"), linewidth = 1) +
+  geom_line(data = subset(data, AI_dummy == 1), 
+            aes(y = predicted, color = "After AI"), linewidth = 1) +
+  geom_vline(xintercept = cutoff, linetype = "dashed", color = "red") +
+  scale_color_manual(values = c("Before AI" = "steelblue", "After AI" = "tomato")) +
+  labs(title = "Stock Price Over Time", subtitle = "Dashed line = 2022-11-30", color = "")
+```
+
+```{r, include=FALSE}
+adf.test(model$residuals)
+```
+
+However, the assumptions on regression were not satisfied. The price data is non-stationary, and the QQ plot of the residuals indicates a clear deviation from normality. The ADF test on the model residuals yielded a p-value of 0.0575, failing to reject the null hypothesis of a unit root using 0.01 as the significance level. This suggests that the residuals remain non-stationary. 
+
+A robust regression approach was considered too. However, since robust methods do not resolve issues of non-stationarity, this approach was not considered in further analysis. As the residuals are not stationary, an ARMA model cannot be appropriately fitted, and thus no further modelling was performed with regression.
+
+### 3.2 Differencing on log price
 ```{r, include=FALSE}
 #| eval: true
 #| echo: false
@@ -143,7 +231,7 @@ before_data <- data |> filter(Date < cutoff)
 after_data  <- data |> filter(Date >= cutoff)
 ```
 
-The autocorrelation function (ACF) plot in @fig-rawacf demonstrates a strong correlation between data points, indicating this time series is non-stationary and does not exhibits white noise characteristics. The ACF values persist well beyond the significance boundaries and decay at a very slow rate. This high correlation is explainable since the stock prices are accumulated based on the previous day's close price. Therefore, data transformation is required to achieve stationarity prior to modeling.
+To stabalize the variance and ensure stationarity, we applied a natural logarithmic transformation. The first difference of the log price series, known as the log return, was then used to remove the trend and produce a stationary series suitable for model estimation. @fig-logreturn shows the log return over time. While the log return mostly fluctuates around a mean of zero with small fluctuations, there are few large spikes. The biggest fluctuations occur around 2020 when the pandemic began, suggesting that the pandemic can might casue substantial uncertainty and sharp movements in the market.
 
 ```{r}
 #| label: fig-logreturn
@@ -176,84 +264,9 @@ pacf(na.omit(data$log_return), main="PACF of log return")
 ```{r, include=FALSE}
 adf.test(na.omit(data$log_return))
 ```
+Although, in @fig-logacfpacf, the ACF shows there still exists few autocorrelation coefficients outside the significance boundaries, the Augmented Dickey-Fuller (ADF) test was conducted for a formal assessment. The test yielded a p-value of 0.01, providing strong empirical evidence to reject the null hypothesis of a unit root and confirming that the log return series is stationary.
 
-To stabalize the variance and ensure stationarity, we applied a natural logarithmic transformation followed by first-order differencing. @fig-logreturn shows the log return over time after transformation. While the log return mostly fluctuates around a mean of zero with small fluctuations, there are few large spikes. The biggest fluctuations occur around 2020 when the pandemic began, suggesting that the pandemic can might casue substantial uncertainty and sharp movements in the market. Although, in @fig-logacfpacf, the ACF shows there still exists few autocorrelation coefficients outside the significance boundaries, the Augmented Dickey-Fuller (ADF) test was conducted for a formal assessment. The test yielded a p-value of 0.01, providing strong empirical evidence to reject the null hypothesis of a unit root and confirming that the log return series is stationary.
-
-# 3 Results
-
-## 3.1 Compare price before and after AI using regression
-
-```{r}
-#| label: tbl-log-return
-#| tbl-cap: "Summary Statistics of Stock Price"
-#| echo: false
-#| message: false
-#| warning: false
-data |>
-  mutate(period = ifelse(Date < cutoff, "Before AI", "After AI")) |>
-  summarise(
-    Mean = mean(log_return, na.rm = TRUE),
-    SD = sd(log_return, na.rm = TRUE),
-    .by = period
-  ) |>
-  mutate(
-    Mean = round(Mean, 5),
-    SD = round(SD, 5)
-  ) |>
-  kable()
-```
-
-According to table @tbl-log-return, the mean log return before and after the appearance of ChatGPT is both close to zero. To test whether there is a difference on price before and after ChatGPT appearance, a regression model with a dummy variable $D_t$ as the predictor was fitted. Although the assumptions required for regression are not fully satisfied, the model is still estimated for exploratory purposes.
-$$\widehat{Price}=\hat\beta_0 + \hat\beta_1t + \hat\beta_2D_t + \hat\beta_3 tD_t$$ where $D_t=0$ represents the period before the appearance of ChatGPT, and $D_t=1$ represents the period after. The significance of $D_t$ and the interaction term $tD_t$ is used to assess whether there are differences between the two periods through a two sample mean test. The null hypothesis is that there is no difference in price behavior between the two periods, while the alternative hypothesis states that there is a difference.
-
-```{r, include=FALSE}
-data <- data[order(data$Date), ]
-data$time_index <- 1:nrow(data)
-
-data$AI_dummy <- ifelse(data$Date >= as.Date("2022-11-30"), 1, 0)
-model <- lm(Price ~ time_index * AI_dummy, data = data)
-```
-
-```{r}
-#| echo: false
-mod_table <- summary(model)$coefficients
-rownames(mod_table) <- c("Intercept", "time", "Dt", "time * Dt")
-kable(
-  round(mod_table, 3),
-  caption = "Summary Table for Regression Model",
-  col.names = c("Estimate", "Std. Error", "t value", "Pr(>|t|)")
-) 
-```
-
-Both the dummy variable and the interaction term are statistically significant, with p-values below 0.01, leading us to reject the null hypothesis. This indicates that prices behaved differently before and after the appearance of AI, not only in level but also in their trajectory over time. As shown in @fig-price-reg-model, the two regression lines display different slopes across the two periods. The slope of price over time is steeper after the appearance of AI, meaning the price increased faster during this period.
-
-```{r}
-#| label: fig-price-reg-model
-#| fig-cap: "Fitted regression lines for price over time, separated by pre and post-AI periods."
-#| eval: true
-#| echo: false
-#| message: false
-#| warning: false
-data$predicted <- predict(model, newdata = data)
-
-ggplot(data, aes(Date, Price)) +
-  geom_line() +
-  geom_line(data = subset(data, AI_dummy == 0), 
-            aes(y = predicted, color = "Before AI"), linewidth = 1) +
-  geom_line(data = subset(data, AI_dummy == 1), 
-            aes(y = predicted, color = "After AI"), linewidth = 1) +
-  geom_vline(xintercept = cutoff, linetype = "dashed", color = "red") +
-  scale_color_manual(values = c("Before AI" = "steelblue", "After AI" = "tomato")) +
-  labs(title = "Stock Price Over Time", subtitle = "Dashed line = 2022-11-30", color = "")
-```
-
-```{r, include=FALSE}
-adf.test(model$residuals)
-```
-
-The ADF test on the model residuals yielded a p-value of 0.0575, failing to reject the null hypothesis of a unit root using 0.01 as the significance level. As the residuals are not stationary, an ARMA model cannot be appropriately fitted, and thus no further modelling is performed.
-
-## 3.2 Fit ARIMA Models on Log Price
+## 3.3 Fit ARIMA Models on Log Price
 
 Using the ACF and PACF plots, we can determine the appropriate order of the ARIMA model. According to @fig-logacfpacf, the ACF gradually tails off, suggesting the presence of autoregressive behavior. According to the PACF, there are strong spikes at lags 2, 4, 7, and 8, and several other significant lags. Based on these patterns, ARIMA(1,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(7,1,7), and ARIMA(8,1,8) models were fitted to the price data to capture the time series.
 
@@ -280,11 +293,11 @@ model5 <- sarima(data$log_price, p=8, d=1, q=8, no.constant=TRUE)
 model3 <- sarima(data$log_price, p=4, d=1, q=4, no.constant=TRUE)
 ```
 
-### 3.2.1 Model Diagnosis
+### 3.3.1 Model Diagnosis
 
 The p values for Ljung-Box Statistic plots indicate that ARIMA(1,1,1) and ARIMA(2,1,2) are not good fits, because p values are insignificant for all lags. ACF plots for ARIMA (4,1,4), ARIMA(7,1,7), and ARIMA (8,1,8) looks stationary, but QQ plots show the points are deviated from the reference line, meaning the normality condition is not met. To determine which model performs the best, we compare the model AIC, AICc, and BIC values.
 
-### 3.2.2 Model Choice
+### 3.3.2 Model Choice
 
 ```{r}
 #| label: tbl-model-comparison
@@ -319,8 +332,8 @@ all_results |> kable()
 
 Among the candidate models, ARIMA(4,1,4) was selected as the best fitting model, as it achieved the lowest AIC, AICc, and BIC values. While ARIMA(7,1,7) produced a very similar AIC, its notably higher BIC indicates that the additional parameters are not justified, making ARIMA(4,1,4) the preferred specification.
 
-## 3.3 Forcasting
-### 3.3.1 Benchmark Methods
+## 3.4 Forcasting
+### 3.4.1 Benchmark Methods
 We are interested in how significant the data after November 30, 2022, when ChatGPT got launched, is for forecasting future stock market prices. To do this, we consider data frames of 3 different time sets: January 3, 2017 to November 30, 2022,  November 30, 2022 to March 27, 2026, and January 3, 2017 to March 27, 2026. 
 We apply three "benchmark" forecasting methods: the mean method, the naïve method, and the seasonal naïve method.  Mean method forecasts all future values as equal to the average (or mean) of the training set. Naive method set all forecast values to be the value of the last observation of the historical data. Seasonal naive method set each forecast to be equal to the last observed value from the same season. In this case, we tested for weekly seasonality using this method. The drift method, which accounts for the amount of change over time, and the decomposition method, which captures the underlying trend, are both considered unnecessary as differencing has already been applied to the log return data.
 
@@ -535,7 +548,7 @@ ggplot(data = original_data, aes(x = time, y = points)) + geom_line( ) +
 
 \newpage
 
-### 3.3.2 ARIMA Method
+### 3.4.2 ARIMA Method
 
 #### ARIMA Model Evaluation
 
@@ -621,13 +634,13 @@ points(forecast_df$Date, forecast_df$Price, col = "red")
 
 \newpage
 
-## Conclusions
+# 4 Conclusions
 
 This project tests whether the rise of AI has significantly affected the behavior of technology sector stock using the XLK ETF price data from 2019 to 2026. Using regression, we compared the price over time before and after the appearance of ChatGPT. It suggests that price after AI increased more quickly than before. However, since price data are non stationary, this result should be interpreted with caution. To address this issue, we transforme the data into log return to make the data stationary. Based on this transformation, we find no significant evidence that AI has had a meaningful effect on stock returns. An ARIMA(4,1,4) model is then fitted to capture the time series dynamics.
 
 The second part of this project is to compare different model's predictive power. ARIMA(4,1,4) has the better predictive power compared to benchmark methods with lower MAE, RMSE, and RMSSE. The model is subsequently used to generate forecasts for the next month.
 
-## Limitations
+# 5 Limitations
 
 There are some potential limitations for the dataset. One of the limitations is that there's possibility for State Street to rebalance the stock composition over time, which means the dataset may not remain fully consistent throughout the study period. The companies in the XLK ETF are selected based on the GICS. However, the GICS structure is reviewed annually, meaning State Street need to adjust the XLK portfolio at least on a yearly base. This could reduce the reliability of comparing stock performance across different years and weaken the robustness of analysis.
 
@@ -635,7 +648,7 @@ Another limitation is the dependency of the dataset. In the data analysis, we no
 
 Also, AR, MA, ARMA are all models that are only a function of the time series itself. They do not include other important factors, such as government policy or economic policy changes. There are many other factors that affects the stock market that we did not incorporate, such as economic indicators and interest rates. Since stock market is influenced by many external variables, excluding these factors may limit the strength and forecasting accuracy of the models.
 
-## Future Directions
+# 6 Future Directions
 
 To account for external factors that might affect the stock market, we could add these as predictors in our model. This can help us better estimate stock prices.
 
