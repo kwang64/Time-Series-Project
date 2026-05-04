@@ -57,7 +57,7 @@ The dataset comprises daily observations spanning from January 3, 2017, to March
 
 ## 2.3 Data Cleaning
 
-In the raw dataset from the investing website, we observe the point information on weekends are carried over from the Friday of the same week with empty number in `Vol.`. We removed these points since they are not consistent with the general pattern and can be misleading in identifying the long-term price fluctuation. We then splitted the dataset into two groups: `before_data` and `after_data`, using the time stamp November 30, 2022 (the release date of chatGPT) as the cutoff.
+In the raw dataset from the investing website, we observe the point information on weekends are carried over from the Friday of the same week with empty number in `Vol`. We removed these points since they are not consistent with the general pattern and can be misleading in identifying the long-term price fluctuation. We then splitted the dataset into two groups: `before_data` and `after_data`, using the time stamp November 30, 2022 (the release date of chatGPT) as the cutoff.
 
 ```{r, include=FALSE}
 #load data
@@ -143,7 +143,7 @@ before_data <- data |> filter(Date < cutoff)
 after_data  <- data |> filter(Date >= cutoff)
 ```
 
-The autocorrelation function (ACF) plot in @fig-rawacf demonstrates a strong correlation between data points, indicating this time series is non-stationary and does not exhibits white noise characteristics. The ACF values persist well beyond the significance boundaries and decat as a very slow rate. This high correlation is explanable since the stock prices are accumulated based on the previous day's close price. Therefore, data transformation is required to acheive stationarity prior to modeling.
+The autocorrelation function (ACF) plot in @fig-rawacf demonstrates a strong correlation between data points, indicating this time series is non-stationary and does not exhibits white noise characteristics. The ACF values persist well beyond the significance boundaries and decay at a very slow rate. This high correlation is explainable since the stock prices are accumulated based on the previous day's close price. Therefore, data transformation is required to achieve stationarity prior to modeling.
 
 ```{r}
 #| label: fig-logreturn
@@ -179,9 +179,9 @@ adf.test(na.omit(data$log_return))
 
 To stabalize the variance and ensure stationarity, we applied a natural logarithmic transformation followed by first-order differencing. @fig-logreturn shows the log return over time after transformation. While the log return mostly fluctuates around a mean of zero with small fluctuations, there are few large spikes. The biggest fluctuations occur around 2020 when the pandemic began, suggesting that the pandemic can might casue substantial uncertainty and sharp movements in the market. Although, in @fig-logacfpacf, the ACF shows there still exists few autocorrelation coefficients outside the significance boundaries, the Augmented Dickey-Fuller (ADF) test was conducted for a formal assessment. The test yielded a p-value of 0.01, providing strong empirical evidence to reject the null hypothesis of a unit root and confirming that the log return series is stationary.
 
-# 3 Method
+# 3 Results
 
-## 3.1 Compare log return and compare price using regression
+## 3.1 Compare price before and after AI using regression
 
 ```{r}
 #| label: tbl-log-return
@@ -203,7 +203,8 @@ data |>
   kable()
 ```
 
-According to table @tbl-log-return, the mean log return before and after the appearance of ChatGPT is both close to zero. To test whether there is a difference on price before and after ChatGPT appearance, a regression model with a dummy variable $D_t$ as the predictor was fitted. $$\widehat{Price}=\hat\beta_0 + \hat\beta_1t + \hat\beta_2D_t + \hat\beta_3 tD_t$$ where $D_t=0$ is before the appearance of ChatGPT, and $D_t=1$ is after the appearance of ChatGPT. A two sample mean test can be used to determine whether $D_t$ is significant. The null hypothesis is that the mean price in the two periods are equal, while the alternative hypothesis is that they are different.
+According to table @tbl-log-return, the mean log return before and after the appearance of ChatGPT is both close to zero. To test whether there is a difference on price before and after ChatGPT appearance, a regression model with a dummy variable $D_t$ as the predictor was fitted. Although the assumptions required for regression are not fully satisfied, the model is still estimated for exploratory purposes.
+$$\widehat{Price}=\hat\beta_0 + \hat\beta_1t + \hat\beta_2D_t + \hat\beta_3 tD_t$$ where $D_t=0$ represents the period before the appearance of ChatGPT, and $D_t=1$ represents the period after. The significance of $D_t$ and the interaction term $tD_t$ is used to assess whether there are differences between the two periods through a two sample mean test. The null hypothesis is that there is no difference in price behavior between the two periods, while the alternative hypothesis states that there is a difference.
 
 ```{r, include=FALSE}
 data <- data[order(data$Date), ]
@@ -219,12 +220,12 @@ mod_table <- summary(model)$coefficients
 rownames(mod_table) <- c("Intercept", "time", "Dt", "time * Dt")
 kable(
   round(mod_table, 3),
-  caption = "Model Coefficients",
+  caption = "Summary Table for Regression Model",
   col.names = c("Estimate", "Std. Error", "t value", "Pr(>|t|)")
 ) 
 ```
 
-Both the dummy variable and the interaction term are statistically significant, with p-values below 0.01, leading us to reject the null hypothesis. This indicates that prices behaved differently before and after the appearance of AI, not only in level but also in their trajectory over time. As shown in @fig-price-reg-model, the two regression lines display different slopes across the two periods.
+Both the dummy variable and the interaction term are statistically significant, with p-values below 0.01, leading us to reject the null hypothesis. This indicates that prices behaved differently before and after the appearance of AI, not only in level but also in their trajectory over time. As shown in @fig-price-reg-model, the two regression lines display different slopes across the two periods. The slope of price over time is steeper after the appearance of AI, meaning the price increased faster during this period.
 
 ```{r}
 #| label: fig-price-reg-model
@@ -252,7 +253,7 @@ adf.test(model$residuals)
 
 The ADF test on the model residuals yielded a p-value of 0.0575, failing to reject the null hypothesis of a unit root using 0.01 as the significance level. As the residuals are not stationary, an ARMA model cannot be appropriately fitted, and thus no further modelling is performed.
 
-## 3.2 Fit ARIMA Model
+## 3.2 Fit ARIMA Models on Log Price
 
 Using the ACF and PACF plots, we can determine the appropriate order of the ARIMA model. According to @fig-logacfpacf, the ACF gradually tails off, suggesting the presence of autoregressive behavior. According to the PACF, there are strong spikes at lags 2, 4, 7, and 8, and several other significant lags. Based on these patterns, ARIMA(1,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(7,1,7), and ARIMA(8,1,8) models were fitted to the price data to capture the time series.
 
@@ -272,6 +273,7 @@ model5 <- sarima(data$log_price, p=8, d=1, q=8, no.constant=TRUE)
 ```{r}
 #| eval: true
 #| echo: false
+#| fig-cap: "Diagnostic Plot for ARIMA(4,1,4)"
 #| message: false
 #| warning: false
 #| results: 'hide'
@@ -280,7 +282,7 @@ model3 <- sarima(data$log_price, p=4, d=1, q=4, no.constant=TRUE)
 
 ### 3.2.1 Model Diagnosis
 
-The p values for Ljung-Box Statistic plots indicate that ARIMA(1,1,1), ARIMA(2,1,2), and ARIMA (4,1,4) are not good fits, because p values are insignificant for all lags. ACF plots for ARIMA(7,1,7) and ARIMA (8,1,8) looks stationary, but QQ plots show the points are deviated from the reference line, meaning the normality condition is not met. To determine which model performs the best, we compare the model AIC, AICc, and BIC values.
+The p values for Ljung-Box Statistic plots indicate that ARIMA(1,1,1) and ARIMA(2,1,2) are not good fits, because p values are insignificant for all lags. ACF plots for ARIMA (4,1,4), ARIMA(7,1,7), and ARIMA (8,1,8) looks stationary, but QQ plots show the points are deviated from the reference line, meaning the normality condition is not met. To determine which model performs the best, we compare the model AIC, AICc, and BIC values.
 
 ### 3.2.2 Model Choice
 
@@ -317,11 +319,12 @@ all_results |> kable()
 
 Among the candidate models, ARIMA(4,1,4) was selected as the best fitting model, as it achieved the lowest AIC, AICc, and BIC values. While ARIMA(7,1,7) produced a very similar AIC, its notably higher BIC indicates that the additional parameters are not justified, making ARIMA(4,1,4) the preferred specification.
 
-## 4 Forcasting
-### 4.1 Benchmark Methods
-We are interested in how significant the data after November 30, 2022, when ChatGPT got launched, is to forecasting future stock market prices. We will being using data frames of different time sets: January 3, 2017 to March 27, 2026, January 3, 2017 to November 30, 2022, and November 30, 2022 to March 27, 2026. The forecast models we will be using three of the "benchmark" methods: Mean method, Naive method and Seasonal naive method. Mean method forecasts all future values as equal to the average (or mean) of the training set. Naive method set all forecast values to be the value of the last observation of the historical data. Seasonal naive method set each forecast to be equal to the last observed value from the same season. We tested for weekly seasonality using this method. The drift method, which accounts for the amount of change over time, and the decomposition method, which captures the underlying trend, were both considered unnecessary as differencing has already been applied to the log return data.
+## 3.3 Forcasting
+### 3.3.1 Benchmark Methods
+We are interested in how significant the data after November 30, 2022, when ChatGPT got launched, is for forecasting future stock market prices. To do this, we consider data frames of 3 different time sets: January 3, 2017 to November 30, 2022,  November 30, 2022 to March 27, 2026, and January 3, 2017 to March 27, 2026. 
+We apply three "benchmark" forecasting methods: the mean method, the naïve method, and the seasonal naïve method.  Mean method forecasts all future values as equal to the average (or mean) of the training set. Naive method set all forecast values to be the value of the last observation of the historical data. Seasonal naive method set each forecast to be equal to the last observed value from the same season. In this case, we tested for weekly seasonality using this method. The drift method, which accounts for the amount of change over time, and the decomposition method, which captures the underlying trend, are both considered unnecessary as differencing has already been applied to the log return data.
 
-First, we aimed to examine whether AI has had an unexpected impact on the stock market and contributed to its fluctuations. We would like to use data from January 3, 2017 to November 30, 2022 to forecast data after November 30, 2022.
+First, we aimed to examine whether AI has had an unexpected impact on the stock market and contributed to its fluctuations. We use data from January 3, 2017 to November 30, 2022 to forecast data after November 30, 2022.
 
 ```{r, include=FALSE}
 library(zoo)
@@ -395,7 +398,7 @@ forecast_table <- data.frame(
 kable(forecast_table, digits = 5, caption = "Forecast Errors")
 ```
 
-According to @tbl-forecast_errors MAE (Mean Absolute Error) and RMSE (Root Mean Squared Error), which measure the difference between actual and predicted values, were small for the mean method but also all these benchmark methods. It appears that the data prior to November 30, 2022 can effectively predict the data following the cutoff point. Furthermore, this suggests that AI have not yet contribute a significant impact in the stock market. As a result, we will use the entire time frame, allocating 80% for training and 20% for testing, to build a forecast model in predict prices in future 2026. 
+According to @tbl-forecast_errors MAE (Mean Absolute Error) and RMSE (Root Mean Squared Error), which measure the difference between actual and predicted values, are small for the mean method but also for all these benchmark methods. This suggests that the data prior to November 30, 2022 can effectively predict the data following the cutoff point. Furthermore, this suggests that AI have not yet contribute a significant impact in the stock market, at least in terms of predictability using these simple benchmark models. As a result, we will use the entire time frame, allocating 80% for training and 20% for testing, to build a forecast model for predicting prices in 2026. 
 
 ```{r, include=FALSE}
 # entire data set 2017/1/3 - 2026/3/27
@@ -481,7 +484,7 @@ forecast_table <- data.frame(
 kable(forecast_table, digits = 5, caption = "Forecast Errors-full model")
 ```
 
-@tbl-forecast_errors_full shows the naive method has the lowest MAE and mean method is has the lowest RMSE. MAPE (Mean Absolute Percentage Error) is a percentage-based error metric that scales forecast errors relative to the actual values. We did not include MAPE here for comparison, because our log return data moves around 0, where some small values here make MAPE enormous and not as a good parameter to look at. MASE (Mean Absolute Scaled Error) and MASSE (Root Mean Squared Scaled Error) are scaled error metrics, and they works by scaling errors based on the training MAE from a simple forecast method. This makes them stable because the denominator is a fixed constant derived from the training data, providing a more informative alternative when MAPE fails to give meaningful results. Lowest MASE and MASSE suggest the mean method is the best, so we will continue forecasting with mean method.
+@tbl-forecast_errors_full shows the naive method has the lowest MAE while the mean method has the lowest RMSE. MAPE (Mean Absolute Percentage Error) is a percentage-based error metric that scales forecast errors relative to the actual values. However, MAPE(Mean Absolute Percentage Error) is not included in this comparison because the log return data fluctuates around zero, where some small values closer to zero make MAPE enormous and not a good parameter to look at. MASE (Mean Absolute Scaled Error) and MASSE (Root Mean Squared Scaled Error) are scaled error metrics, and they works by scaling errors based on the training MAE from a simple forecast method. This makes them stable because the denominator is a fixed constant derived from the training data, providing a more informative alternative when MAPE fails to give meaningful results. Based on the lowest MASE and RMSSE values, the mean method performs best overall. Therefore, we proceed with the mean method for forecasting.
 
 ```{r}
 #| label: fig-qqhist
@@ -496,7 +499,8 @@ qqnorm(log_return_ts, main = "QQ plot")
 hist(log_return_ts, main = "histogram")
 ```
 
-Next, we construct a prediction interval for the mean method forecast model. In @fig-qqhist, while the histogram suggests the residuals are approximately normally distributed, the QQ-plot indicates that the log returns deviate from normality, violating classic assumptions. This implies that the resulting prediction interval might not be reliable.
+Next, we construct a prediction interval for the mean method forecast model. In @fig-qqhist, while the histogram suggests the residuals are approximately normally distributed, the QQ-plot indicates that the log returns deviate from normality, violating classic assumptions. This implies that the resulting prediction interval might not be reliable. @fig-full-mean-prediction-int suggests that the 
+prediction interval becomes very wide, therefore the mean method has little predictive power on long term returns. 
 
 ```{r}
 #| label: fig-full-mean-prediction-int
@@ -531,9 +535,9 @@ ggplot(data = original_data, aes(x = time, y = points)) + geom_line( ) +
 
 \newpage
 
-### 4.2 ARIMA Method
+### 3.3.2 ARIMA Method
 
-#### 4.2.1 ARIMA Model Evaluation
+#### ARIMA Model Evaluation
 
 To evaluate whether ARIMA(4,1,4) outperforms the mean method, we split the full time frame into 80% training and 20% testing, fitted ARIMA(4,1,4) on the training set, and computed forecast accuracy metrics as shown in @tbl-arima_forecast_check. Comparing with @tbl-forecast_errors_full, the MASE values are the same across both models, however ARIMA(4,1,4) achieves lower MAE, RMSE, and RMSSE, suggesting it is the better performing model. 
 
@@ -579,8 +583,8 @@ kable(forecast_table, digits = 5, caption = "ARIMA(4,1,4) forecast errors")
 ```
 
 
-#### 4.2.2 ARIMA forecast 
-Using ARIMA(4,1,4), we forecast the next 30 days starting March 28, 2026. The predicted values appear relatively flat, which is expected for ARIMA models. Since future white noise terms are unknown, the forecasts tend to settle toward a constant, resulting in a smoother and less stochastic pattern compared to the real data.
+#### ARIMA forecast 
+Using ARIMA(4,1,4), we forecast the next 30 days starting March 28, 2026. The predicted values appear relatively flat, which is expected for ARIMA models over short period of time. Since future white noise terms are unknown, the forecasts tend to settle toward a constant, resulting in a smoother and less stochastic pattern compared to the real data, as shown in @fig-full-arima-forecast.
 
 ```{r, include=FALSE}
 forecasted <- sarima.for(ts(data$log_price), n.ahead = 30, p = 4, d = 1, q = 4, no.constant = TRUE)$pred
@@ -617,9 +621,11 @@ points(forecast_df$Date, forecast_df$Price, col = "red")
 
 \newpage
 
-## Summary
+## Conclusions
 
-This project tests whether the rise of AI has significantly affected the behavior of technology sector stock returns. Using the XLK ETF price data from 2019 to 2026, we transformed the series into log returns to make the data stationary and applied AR(1), MA(1), and ARMA (1,1) time series models. The result suggests that stock return pattern remained relatively stable before and after the emergence of AI, indicating that AI has not yet had a significant impact on the technology stock market price. More broadly, this shows that while AI is often seen as a transformative force, its impact on financial markets may not be immediately reflected in stock return fluctuations.
+This project tests whether the rise of AI has significantly affected the behavior of technology sector stock using the XLK ETF price data from 2019 to 2026. Using regression, we compared the price over time before and after the appearance of ChatGPT. It suggests that price after AI increased more quickly than before. However, since price data are non stationary, this result should be interpreted with caution. To address this issue, we transforme the data into log return to make the data stationary. Based on this transformation, we find no significant evidence that AI has had a meaningful effect on stock returns. An ARIMA(4,1,4) model is then fitted to capture the time series dynamics.
+
+The second part of this project is to compare different model's predictive power. ARIMA(4,1,4) has the better predictive power compared to benchmark methods with lower MAE, RMSE, and RMSSE. The model is subsequently used to generate forecasts for the next month.
 
 ## Limitations
 
