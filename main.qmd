@@ -57,7 +57,7 @@ The dataset comprises daily observations spanning from January 3, 2017, to March
 
 ## 2.3 Data Cleaning
 
-In the raw dataset from the investing website, we observe the point information on weekends are carried over from the Friday of the same week with empty number in `Vol`. We removed these points since they are not consistent with the general pattern and can be misleading in identifying the long-term price fluctuation. We then splitted the dataset into two groups: `before_data` and `after_data`, using the time stamp November 30, 2022 (the release date of chatGPT) as the cutoff.
+In the raw dataset from the investing website, we observe the point information on weekends are carried over from the Friday of the same week with empty number in `Vol`. We removed these points since they are not consistent with the general pattern and can be misleading in identifying the long-term price fluctuation. We then split the dataset into two groups, using the time stamp November 30, 2022 (the release date of chatGPT) as the cutoff.
 
 ```{r, include=FALSE}
 #load data
@@ -89,7 +89,7 @@ data |>
     min_price = min(Price, na.rm = TRUE),
     max_price = max(Price, na.rm = TRUE)
   ) |>
-  kable()
+  kable(col.names = c("Mean Price", "Standard deviation", "Minimum", "Maximum"))
 ```
 
 ```{r}
@@ -212,9 +212,16 @@ ggplot(data, aes(Date, Price)) +
 adf.test(model$residuals)
 ```
 
-However, the assumptions on regression were not satisfied. The price data is non-stationary, and the QQ plot of the residuals indicates a clear deviation from normality. The ADF test on the model residuals yielded a p-value of 0.0575, failing to reject the null hypothesis of a unit root using 0.01 as the significance level. This suggests that the residuals remain non-stationary. 
+However, the assumptions on regression were not satisfied. The price data is non-stationary, and the QQ plot of the residuals indicates a clear deviation from normality. The  Augmented Dickey-Fuller (ADF) test on the model residuals yielded a p-value of 0.0575, failing to reject the null hypothesis of a unit root using 0.01 as the significance level. This suggests that the residuals remain non-stationary. 
 
 A robust regression approach was considered too. However, since robust methods do not resolve issues of non-stationarity, this approach was not considered in further analysis. As the residuals are not stationary, an ARMA model cannot be appropriately fitted, and thus no further modelling was performed with regression.
+
+```{r, include = FALSE}
+# library(fixedCV)
+# 
+# robust <- robust_lm(model)
+# robust$Summary_Table
+```
 
 ### 3.2 Differencing on log price
 ```{r, include=FALSE}
@@ -264,11 +271,29 @@ pacf(na.omit(data$log_return), main="PACF of log return")
 ```{r, include=FALSE}
 adf.test(na.omit(data$log_return))
 ```
-Although, in @fig-logacfpacf, the ACF shows there still exists few autocorrelation coefficients outside the significance boundaries, the Augmented Dickey-Fuller (ADF) test was conducted for a formal assessment. The test yielded a p-value of 0.01, providing strong empirical evidence to reject the null hypothesis of a unit root and confirming that the log return series is stationary.
+Although, in @fig-logacfpacf, the ACF shows there still exists few autocorrelation coefficients outside the significance boundaries, the ADF test was conducted for a formal assessment. The test yielded a p-value of 0.01, providing strong empirical evidence to reject the null hypothesis of a unit root and confirming that the log return series is stationary.
 
-## 3.3 Fit ARIMA Models on Log Price
+# 3.3 Before AI predicting after AI
+We are interested in how significant the data after November 30, 2022, when ChatGPT got launched, is for forecasting future stock market prices. To do this, we consider data frames of 3 different time sets: January 3, 2017 to November 30, 2022,  November 30, 2022 to March 27, 2026, and January 3, 2017 to March 27, 2026. 
 
-Using the ACF and PACF plots, we can determine the appropriate order of the ARIMA model. According to @fig-logacfpacf, the ACF gradually tails off, suggesting the presence of autoregressive behavior. According to the PACF, there are strong spikes at lags 2, 4, 7, and 8, and several other significant lags. Based on these patterns, ARIMA(1,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(7,1,7), and ARIMA(8,1,8) models were fitted to the price data to capture the time series.
+We aimed to examine whether AI has had an unexpected impact on the stock market and contributed to its fluctuations. We use data from January 3, 2017 to November 30, 2022 to forecast data after November 30, 2022.
+
+We will use seirs from January 3, 2017 to November 30, 2022 to determine an ARIMA model that best explains the data before AI starts. Will use both the AIC, AICc and BIC, and point camparison metrics like MAE, RMSE to determine the best model. 
+
+We then apply three "benchmark" forecasting methods: the mean method, the naïve method, and the seasonal naïve method. Mean method forecasts all future values as equal to the average (or mean) of the training set. Naive method set all forecast values to be the value of the last observation of the historical data. Seasonal naive method set each forecast to be equal to the last observed value from the same season. In this case, we tested for weekly seasonality using this method. The drift method, which accounts for the amount of change over time, and the decomposition method, which captures the underlying trend, are both considered unnecessary as differencing has already been applied to the log return data.
+
+Lastly, we will compare whether if the ARIMA methods and the benchmark method to pick the best model.
+
+
+```{r}
+part <- ts(as.numeric(log(before_data$Price)))
+
+acf(diff(log(before_data$Price)))
+pacf(diff(log(before_data$Price)))
+```
+
+(改)
+Using the ACF and PACF plots, we can determine the appropriate order of the ARIMA model. According to 图, the ACF gradually tails off, suggesting the presence of autoregressive behavior. According to the PACF, there are strong spikes at lags 1, 6, 7，8, and 9, and several other significant lags. Based on these patterns, ARIMA(1,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(6,1,6), and ARIMA(7,1,7) models were fitted to the price data to capture the time series. 看着没4，试试圆一下或者删了
 
 ```{r, include=FALSE}
 #| eval: true
@@ -276,22 +301,171 @@ Using the ACF and PACF plots, we can determine the appropriate order of the ARIM
 #| message: false
 #| warning: false
 #| results: 'hide'
-model1 <- sarima(data$log_price, p=1, d=1, q=1, no.constant=TRUE) 
-model2 <- sarima(data$log_price, p=2, d=1, q=2, no.constant=TRUE) 
-model3 <- sarima(data$log_price, p=4, d=1, q=4, no.constant=TRUE)
-model4 <- sarima(data$log_price, p=7, d=1, q=7, no.constant=TRUE)
-model5 <- sarima(data$log_price, p=8, d=1, q=8, no.constant=TRUE)
+model1.1 <- sarima(part, p=1, d=1, q=1, no.constant=TRUE, details = FALSE)
+model2.2 <- sarima(part, p=2, d=1, q=2, no.constant=TRUE, details = FALSE)
+model3.3 <- sarima(part, p=4, d=1, q=4, no.constant=TRUE, details = FALSE)
+model4.4 <- sarima(part, p=6, d=1, q=6, no.constant=TRUE, details = FALSE)
+model5.5 <- sarima(part, p=7, d=1, q=7, no.constant=TRUE, details = FALSE)
+model6.6 <- sarima(part, p=8, d=1, q=8, no.constant=TRUE, details = FALSE)
+```
+
+```{r}
+part_ICs <- rbind(
+  model1.1$ICs,
+  model2.2$ICs,
+  model3.3$ICs,
+  model4.4$ICs,
+  model5.5$ICs,
+  model6.6$ICs
+)
+
+part_loglik <- c(
+  model1.1$loglik,
+  model2.2$loglik,
+  model3.3$loglik,
+  model4.4$loglik,
+  model5.5$loglik,
+  model6.6$loglik
+)
+part_results <- cbind(
+  part_ICs,
+  part_loglik
+)
+rownames(part_results) <- c("ARIMA(1,1,1)", "ARIMA(2,1,2)","ARIMA(4,1,4)", "ARIMA(6,1,6)", "ARIMA(7,1,7)", "ARIMA(8,1,8)")
+
+part_results |> kable()
 ```
 
 ```{r}
 #| eval: true
 #| echo: false
-#| fig-cap: "Diagnostic Plot for ARIMA(4,1,4)"
+#| fig-cap: "Diagnostic Plot for ARIMA(7,1,7)"
 #| message: false
 #| warning: false
 #| results: 'hide'
-model3 <- sarima(data$log_price, p=4, d=1, q=4, no.constant=TRUE)
+model5.5 <- sarima(part, p=7, d=1, q=7, no.constant=TRUE)
 ```
+
+<!----------------------------------------------------------------------------------->
+
+```{r, include=FALSE}
+library(zoo)
+library(lubridate) 
+# [Link: Stack Overflow https://stackoverflow.com/questions/18755643/time-series-analysis-with-r-how-to-deal-with-daily-data]
+
+# Create a zoo object
+log_return_ts <- zoo(data$log_return, order.by = data$Date[-1])
+
+#remove NA
+log_return_ts <- na.omit(log_return_ts)
+
+# Plot the time series
+plot(log_return_ts, main = "Daily Time Series", xlab = "Date", ylab = "Log_return", type = "l", col = "blue")
+```
+
+```{r, include=FALSE}
+adf.test(log_return_ts)
+```
+
+```{r, include=FALSE}
+x_train1 <- log_return_ts[index(log_return_ts) <= as.Date("2022-11-30")]
+x_test1 <- log_return_ts[index(log_return_ts) > as.Date("2022-11-30")]
+
+#forecasts
+x_mean1 <- rep(mean(x_train1), length(x_test1)) #mean
+x_naive1 <- rep(tail(x_train1,1), length(x_test1)) #naive
+x_seasonal1 <- rep(c(tail(x_train1, 7)), length(x_test1)) #seasonal
+
+# forecast errors
+mean_errors1 <- x_test1 - x_mean1
+naive_errors1 <- x_test1 - x_naive1
+seasonal_errors1 <- x_test1 - x_seasonal1
+
+# MAE(Scale-dependent Errors)
+mean_MAE1 <- mean(abs(mean_errors1), na.rm = TRUE)
+naive_MAE1 <- mean(abs(naive_errors1), na.rm = TRUE)
+seasonal_MAE1 <- mean(abs(seasonal_errors1), na.rm = TRUE)
+
+#RMSE
+mean_RMSE1 <- sqrt(mean(mean_errors1^2, na.rm = TRUE))
+naive_RMSE1 <- sqrt(mean(naive_errors1^2, na.rm = TRUE))
+seasonal_RMSE1 <- sqrt(mean(seasonal_errors1^2, na.rm = TRUE))
+```
+
+```{r, include=FALSE}
+cat("MAE - Mean Forecast:     ", mean_MAE1, "\n")
+cat("MAE - Naive Forecast:    ", naive_MAE1, "\n")
+cat("MAE - Seasonal Forecast: ", seasonal_MAE1, "\n\n")
+
+cat("RMSE - Mean Forecast:     ", mean_RMSE1, "\n")
+cat("RMSE - Naive Forecast:    ", naive_RMSE1, "\n")
+cat("RMSE - Seasonal Forecast: ", seasonal_RMSE1, "\n")
+```
+
+```{r}
+n_train_part <- length(x_train1)
+train_diffs_part  <- abs(diff(as.numeric(x_train1), lag = 1))
+nonseasonal_scale_part <- mean(train_diffs)
+nonseasonal_scale_sq_part <- mean(train_diffs^2)
+
+# for(i in 2:n){
+#   train_MAE <- abs(x_train2[i] - x_train2[i-1])
+# }
+# nonseasonal_scale <- sum(train_MAE)/(n-1)
+# nonseasonal_scale_sq <- sum(train_MAE^2)/(n-1)
+
+mean_MASE1 <- mean(abs(mean_errors1/nonseasonal_scale_part), na.rm = TRUE)
+naive_MASE1 <- mean(abs(naive_errors1/nonseasonal_scale_part), na.rm = TRUE)
+seasonal_MASE1 <- mean(abs(seasonal_errors2/nonseasonal_scale_part), na.rm = TRUE)
+
+mean_MASSE1 <- sqrt(mean(mean_errors1^2/nonseasonal_scale_sq_part, na.rm = TRUE))
+naive_MASSE1 <- sqrt(mean(naive_errors1^2/nonseasonal_scale_sq_part, na.rm = TRUE))
+seasonal_MASSE1 <- sqrt(mean(seasonal_errors1^2/nonseasonal_scale_sq_part, na.rm = TRUE))
+```
+
+```{r}
+x_train_part <- ts(as.numeric(x_train1))
+x_test_part  <- ts(as.numeric(x_test1))
+
+fit717 <- sarima.for(x_train_part, n.ahead = length(x_train_part), p = 7, d = 1, q = 7, no.constant = TRUE)
+
+pred717 <- fit717$pred
+
+actual_part <- x_test_part
+
+arimaMAE_part  <- mean(abs(as.numeric(actual_part) - as.numeric(pred717)))
+arimaRMSE_part <- sqrt(mean((as.numeric(actual_part) - as.numeric(pred717))^2))
+
+n_train717 <- length(x_train1)
+train_diffs717 <- abs(diff(x_train_part, lag = 1))
+nonseasonal_scale717 <- mean(train_diffs717)
+nonseasonal_scale_sq717 <- mean(train_diffs717^2)
+
+arimaMASE_part <- mean(abs((as.numeric(actual) - as.numeric(pred717)) / nonseasonal_scale717))
+
+arimaMASSE_part <- sqrt(mean((as.numeric(actual) - as.numeric(pred414))^2 / nonseasonal_scale_sq414, na.rm = TRUE))
+```
+
+```{r}
+#| label: tbl-forecast_errors
+#| eval: true
+#| echo: false
+#| message: false
+#| warning: false
+
+forecast_table <- data.frame(
+  Method = c("Mean", "Naive", "Seasonal", "ARIMA(7,1,7)"),
+  MAE = c(mean_MAE1, naive_MAE1, seasonal_MAE1, arimaMAE_part),
+  RMSE = c(mean_RMSE1, naive_RMSE1, seasonal_RMSE1, arimaRMSE_part),
+  MASE = c(mean_MASE1, naive_MASE1, seasonal_MASE1, arimaMASSE_part),
+  MASSE = c(mean_MASSE1, naive_MASSE1, seasonal_MASSE1, arimaMASSE_part)
+)
+
+kable(forecast_table, digits = 5, caption = "Forecast Errors")
+```
+
+According to @tbl-forecast_errors MAE (Mean Absolute Error) and RMSE (Root Mean Squared Error), which measure the difference between actual and predicted values, are small for the mean method but also for all these benchmark methods. This suggests that the data prior to November 30, 2022 can effectively predict the data following the cutoff point. Furthermore, this suggests that AI have not yet contribute a significant impact in the stock market, at least in terms of predictability using these simple benchmark models. As a result, we will use the entire time frame, allocating 80% for training and 20% for testing, to build a forecast model for predicting prices in 2026.
+
 
 ### 3.3.1 Model Diagnosis
 
@@ -332,86 +506,34 @@ all_results |> kable()
 
 Among the candidate models, ARIMA(4,1,4) was selected as the best fitting model, as it achieved the lowest AIC, AICc, and BIC values. While ARIMA(7,1,7) produced a very similar AIC, its notably higher BIC indicates that the additional parameters are not justified, making ARIMA(4,1,4) the preferred specification.
 
-## 3.4 Forcasting
-### 3.4.1 Benchmark Methods
-We are interested in how significant the data after November 30, 2022, when ChatGPT got launched, is for forecasting future stock market prices. To do this, we consider data frames of 3 different time sets: January 3, 2017 to November 30, 2022,  November 30, 2022 to March 27, 2026, and January 3, 2017 to March 27, 2026. 
-We apply three "benchmark" forecasting methods: the mean method, the naïve method, and the seasonal naïve method.  Mean method forecasts all future values as equal to the average (or mean) of the training set. Naive method set all forecast values to be the value of the last observation of the historical data. Seasonal naive method set each forecast to be equal to the last observed value from the same season. In this case, we tested for weekly seasonality using this method. The drift method, which accounts for the amount of change over time, and the decomposition method, which captures the underlying trend, are both considered unnecessary as differencing has already been applied to the log return data.
-
-First, we aimed to examine whether AI has had an unexpected impact on the stock market and contributed to its fluctuations. We use data from January 3, 2017 to November 30, 2022 to forecast data after November 30, 2022.
+# 3.4 Full time frame
+Using the ACF and PACF plots, we can determine the appropriate order of the ARIMA model. According to @fig-logacfpacf, the ACF gradually tails off, suggesting the presence of autoregressive behavior. According to the PACF, there are strong spikes at lags 2, 4, 7, and 8, and several other significant lags. Based on these patterns, ARIMA(1,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(7,1,7), and ARIMA(8,1,8) models were fitted to the price data to capture the time series.
 
 ```{r, include=FALSE}
-library(zoo)
-library(lubridate) 
-# [Link: Stack Overflow https://stackoverflow.com/questions/18755643/time-series-analysis-with-r-how-to-deal-with-daily-data]
-
-# Create a zoo object
-log_return_ts <- zoo(data$log_return, order.by = data$Date[-1])
-
-#remove NA
-log_return_ts <- na.omit(log_return_ts)
-
-# Plot the time series
-plot(log_return_ts, main = "Daily Time Serie", xlab = "Date", ylab = "Log_return", type = "l", col = "blue")
-```
-
-```{r, include=FALSE}
-adf.test(log_return_ts)
-```
-
-```{r, include=FALSE}
-x_train1 <- log_return_ts[index(log_return_ts) <= as.Date("2022-11-30")]
-x_test1 <- log_return_ts[index(log_return_ts) > as.Date("2022-11-30")]
-
-#forecasts
-x_mean1 <- rep(mean(x_train1), length(x_test1)) #mean
-x_naive1 <- rep(tail(x_train1,1), length(x_test1)) #naive
-x_seasonal1 <- rep(c(tail(x_train1, 7)), length(x_test1)) #seasonal
-
-# forecast errors
-mean_errors1 <- x_test1 - x_mean1
-naive_errors1 <- x_test1 - x_naive1
-seasonal_errors1 <- x_test1 - x_seasonal1
-
-# MAE(Scale-dependent Errors)
-mean_MAE1 <- mean(abs(mean_errors1), na.rm = TRUE)
-naive_MAE1 <- mean(abs(naive_errors1), na.rm = TRUE)
-seasonal_MAE1 <- mean(abs(seasonal_errors1), na.rm = TRUE)
-
-#RMSE
-mean_RMSE1 <- sqrt(mean(mean_errors1^2, na.rm = TRUE))
-naive_RMSE1 <- sqrt(mean(naive_errors1^2, na.rm = TRUE))
-seasonal_RMSE1 <- sqrt(mean(seasonal_errors1^2, na.rm = TRUE))
-
-
-```
-
-```{r, include=FALSE}
-cat("MAE - Mean Forecast:     ", mean_MAE1, "\n")
-cat("MAE - Naive Forecast:    ", naive_MAE1, "\n")
-cat("MAE - Seasonal Forecast: ", seasonal_MAE1, "\n\n")
-
-cat("RMSE - Mean Forecast:     ", mean_RMSE1, "\n")
-cat("RMSE - Naive Forecast:    ", naive_RMSE1, "\n")
-cat("RMSE - Seasonal Forecast: ", seasonal_RMSE1, "\n")
-```
-
-```{r}
-#| label: tbl-forecast_errors
 #| eval: true
 #| echo: false
 #| message: false
 #| warning: false
-
-forecast_table <- data.frame(
-  Method = c("Mean", "Naive", "Seasonal"),
-  MAE = c(mean_MAE1, naive_MAE1, seasonal_MAE1),
-  RMSE = c(mean_RMSE1, naive_RMSE1, seasonal_RMSE1)
-)
-
-kable(forecast_table, digits = 5, caption = "Forecast Errors")
+#| results: 'hide'
+model1 <- sarima(data$log_price, p=1, d=1, q=1, no.constant=TRUE) 
+model2 <- sarima(data$log_price, p=2, d=1, q=2, no.constant=TRUE) 
+model3 <- sarima(data$log_price, p=4, d=1, q=4, no.constant=TRUE)
+model4 <- sarima(data$log_price, p=7, d=1, q=7, no.constant=TRUE)
+model5 <- sarima(data$log_price, p=8, d=1, q=8, no.constant=TRUE)
 ```
 
-According to @tbl-forecast_errors MAE (Mean Absolute Error) and RMSE (Root Mean Squared Error), which measure the difference between actual and predicted values, are small for the mean method but also for all these benchmark methods. This suggests that the data prior to November 30, 2022 can effectively predict the data following the cutoff point. Furthermore, this suggests that AI have not yet contribute a significant impact in the stock market, at least in terms of predictability using these simple benchmark models. As a result, we will use the entire time frame, allocating 80% for training and 20% for testing, to build a forecast model for predicting prices in 2026. 
+```{r}
+#| eval: true
+#| echo: false
+#| fig-cap: "Diagnostic Plot for ARIMA(4,1,4)"
+#| message: false
+#| warning: false
+#| results: 'hide'
+model3 <- sarima(data$log_price, p=4, d=1, q=4, no.constant=TRUE)
+```
+
+<!----------------------------------------------------------------------------------->
+
 
 ```{r, include=FALSE}
 # entire data set 2017/1/3 - 2026/3/27
@@ -479,6 +601,29 @@ naive_MASSE <- sqrt(mean(naive_errors2^2/nonseasonal_scale_sq, na.rm = TRUE))
 seasonal_MASSE <- sqrt(mean(seasonal_errors2^2/nonseasonal_scale_sq, na.rm = TRUE))
 ```
 
+```{r, include = FALSE}
+x_train_ts <- ts(as.numeric(x_train2))
+x_test_ts  <- ts(as.numeric(x_test2))
+
+fit414 <- sarima.for(x_train_ts, n.ahead = length(x_test_ts), p = 4, d = 1, q = 4, no.constant = TRUE)
+
+pred414 <- fit414$pred
+
+actual <- x_test_ts
+
+arimaMAE  <- mean(abs(as.numeric(actual) - as.numeric(pred414)))
+arimaRMSE <- sqrt(mean((as.numeric(actual) - as.numeric(pred414))^2))
+
+n_train414 <- length(x_train2)
+train_diffs414 <- abs(diff(x_train_ts, lag = 1))
+nonseasonal_scale414 <- mean(train_diffs414)
+nonseasonal_scale_sq414 <- mean(train_diffs414^2)
+
+arimaMASE <- mean(abs((as.numeric(actual) - as.numeric(pred414)) / nonseasonal_scale414))
+
+arimaMASSE <- sqrt(mean((as.numeric(actual) - as.numeric(pred414))^2 / nonseasonal_scale_sq414, na.rm = TRUE))
+```
+
 ```{r}
 #| label: tbl-forecast_errors_full
 #| eval: true
@@ -487,17 +632,20 @@ seasonal_MASSE <- sqrt(mean(seasonal_errors2^2/nonseasonal_scale_sq, na.rm = TRU
 #| warning: false
 
 forecast_table <- data.frame(
-  Method = c("Mean", "Naive", "Seasonal"),
-  MAE = c(mean_MAE2, naive_MAE2, seasonal_MAE2),
-  RMSE = c(mean_RMSE2, naive_RMSE2, seasonal_RMSE2),
-  MASE = c(mean_MASE, naive_MASE, seasonal_MASE),
-  MASSE = c(mean_MASSE, naive_MASSE, seasonal_MASSE)
+  Method = c("Mean", "Naive", "Seasonal", "ARIMA(4,1,4)"),
+  MAE = c(mean_MAE2, naive_MAE2, seasonal_MAE2, arimaMAE),
+  RMSE = c(mean_RMSE2, naive_RMSE2, seasonal_RMSE2, arimaRMSE),
+  MASE = c(mean_MASE, naive_MASE, seasonal_MASE, arimaMASE), #xs was meanMASE
+  MASSE = c(mean_MASSE, naive_MASSE, seasonal_MASSE, arimaMASSE)
 )
 
 kable(forecast_table, digits = 5, caption = "Forecast Errors-full model")
 ```
 
-@tbl-forecast_errors_full shows the naive method has the lowest MAE while the mean method has the lowest RMSE. MAPE (Mean Absolute Percentage Error) is a percentage-based error metric that scales forecast errors relative to the actual values. However, MAPE(Mean Absolute Percentage Error) is not included in this comparison because the log return data fluctuates around zero, where some small values closer to zero make MAPE enormous and not a good parameter to look at. MASE (Mean Absolute Scaled Error) and MASSE (Root Mean Squared Scaled Error) are scaled error metrics, and they works by scaling errors based on the training MAE from a simple forecast method. This makes them stable because the denominator is a fixed constant derived from the training data, providing a more informative alternative when MAPE fails to give meaningful results. Based on the lowest MASE and RMSSE values, the mean method performs best overall. Therefore, we proceed with the mean method for forecasting.
+@tbl-forecast_errors_full shows the naive method has the lowest MAE while the mean method has the lowest RMSE. MAPE (Mean Absolute Percentage Error) is a percentage-based error metric that scales forecast errors relative to the actual values. However, MAPE(Mean Absolute Percentage Error) is not included in this comparison because the log return data fluctuates around zero, where some small values closer to zero make MAPE enormous and not a good parameter to look at. MASE (Mean Absolute Scaled Error) and MASSE (Root Mean Squared Scaled Error) are scaled error metrics, and they works by scaling errors based on the training MAE from a simple forecast method. This makes them stable because the denominator is a fixed constant derived from the training data, providing a more informative alternative when MAPE fails to give meaningful results. Based on the lowest MASE and RMSSE values, the mean method performs best overall. 
+
+To evaluate whether ARIMA(4,1,4) outperforms the mean method, we split the full time frame into 80% training and 20% testing, fitted ARIMA(4,1,4) on the training set, and computed forecast accuracy metrics as shown in @tbl-arima_forecast_check. Comparing with @tbl-forecast_errors_full, the MASE values are the same across both models, however ARIMA(4,1,4) achieves lower MAE, RMSE, and RMSSE, suggesting it is the better performing model. 
+
 
 ```{r}
 #| label: fig-qqhist
@@ -512,8 +660,7 @@ qqnorm(log_return_ts, main = "QQ plot")
 hist(log_return_ts, main = "histogram")
 ```
 
-Next, we construct a prediction interval for the mean method forecast model. In @fig-qqhist, while the histogram suggests the residuals are approximately normally distributed, the QQ-plot indicates that the log returns deviate from normality, violating classic assumptions. This implies that the resulting prediction interval might not be reliable. @fig-full-mean-prediction-int suggests that the 
-prediction interval becomes very wide, therefore the mean method has little predictive power on long term returns. 
+Next, we construct a prediction interval for the mean method forecast model and ARIMA(4,1,4). In @fig-qqhist, while the histogram suggests the residuals are approximately normally distributed, the QQ-plot indicates that the log returns deviate from normality, violating classic assumptions. Despite this, @fig-full-mean-prediction-int shows that the prediction interval successfully captures all observations in the test set, suggesting the interval is functioning as intended. However, the interval is extremely wide, reflecting high uncertainty in the forecasts. This indicates that while the mean method provides valid coverage, it offers little practical predictive power for long-term returns.
 
 ```{r}
 #| label: fig-full-mean-prediction-int
@@ -546,57 +693,67 @@ ggplot(data = original_data, aes(x = time, y = points)) + geom_line( ) +
 
 ```
 
-\newpage
-
-### 3.4.2 ARIMA Method
-
-#### ARIMA Model Evaluation
-
-To evaluate whether ARIMA(4,1,4) outperforms the mean method, we split the full time frame into 80% training and 20% testing, fitted ARIMA(4,1,4) on the training set, and computed forecast accuracy metrics as shown in @tbl-arima_forecast_check. Comparing with @tbl-forecast_errors_full, the MASE values are the same across both models, however ARIMA(4,1,4) achieves lower MAE, RMSE, and RMSSE, suggesting it is the better performing model. 
-
-```{r, include = FALSE}
-x_train_ts <- ts(as.numeric(x_train1))
-x_test_ts  <- ts(as.numeric(x_test1))
-
-fit414 <- sarima.for(x_train_ts, n.ahead = length(x_test_ts), p = 4, d = 1, q = 4, no.constant = TRUE)
-
-pred414 <- fit414$pred
-
-actual <- x_test_ts
-
-arimaMAE  <- mean(abs(as.numeric(actual) - as.numeric(pred414)))
-arimaRMSE <- sqrt(mean((as.numeric(actual) - as.numeric(pred414))^2))
-
-n_train414 <- length(x_train1)
-train_diffs414 <- abs(diff(x_train_ts, lag = 1))
-nonseasonal_scale414 <- mean(train_diffs414)
-nonseasonal_scale_sq414 <- mean(train_diffs414^2)
-
-arimaMASE <- mean(abs((as.numeric(actual) - as.numeric(pred414)) / nonseasonal_scale414))
-
-arimaMASSE <- sqrt(mean((as.numeric(actual) - as.numeric(pred414))^2 / nonseasonal_scale_sq414, na.rm = TRUE))
-```
+Check if ARIMA model would produce a better prediction interval. 
 
 ```{r}
-#| label: tbl-arima_forecast_check
-#| eval: true
-#| echo: false
-#| message: false
-#| warning: false
+# x_train2 <- log_return_ts[index(log_return_ts) <= as.Date("2024-05-21")]
+# x_test2  <- log_return_ts[index(log_return_ts) >  as.Date("2024-05-21")]
+# 
+# x_train_ts <- ts(as.numeric(x_train2))
+# x_test_ts  <- ts(as.numeric(x_test2))
+fit414_train <- arima(x_train_ts, order = c(4, 1, 4), include.mean = FALSE)
 
-forecast_table <- data.frame(
-  Method = c("ARIMA(4,1,4)"),
-  MAE = c(arimaMAE),
-  RMSE = c(arimaRMSE),
-  MASE = c(mean_MASE),
-  MASSE = c(arimaMASSE)
+# Forecast over test period
+n_ahead <- length(index(x_test2))
+fc <- predict(fit414_train, n.ahead = n_ahead)
+
+forecast_vals <- as.numeric(fc$pred)
+forecast_timea <- index(x_test2)
+
+# 95% prediction intervals
+alpha   <- 0.05
+sigma   <- sqrt(sum((x_train_ts - mean(x_train_ts))^2) / (length(x_train_ts) - 1))
+c_val   <- qnorm(1 - alpha / 2)
+sigma_h <- sigma * sqrt(1:n_ahead)
+
+LBa <- forecast_vals - c_val * sigma_h
+UBa <- forecast_vals + c_val * sigma_h
+
+# Data frames
+df_original <- data.frame(
+  time   = index(log_return_ts),
+  points = as.numeric(log_return_ts)
 )
 
-kable(forecast_table, digits = 5, caption = "ARIMA(4,1,4) forecast errors")
+df_forecast <- data.frame(
+  time   = forecast_timea,
+  points = forecast_vals,
+  LB     = LBa,
+  UB     = UBa
+)
+
+# Plot
+ggplot(df_original, aes(x = time, y = points)) +
+  geom_line(color = "gray40", linewidth = 0.5) +
+  geom_ribbon(data = df_forecast, aes(x = time, ymin = LB, ymax = UB),
+              fill = "lightblue", alpha = 0.5) +
+  geom_line(data = df_forecast, aes(x = time, y = points),
+            color = "blue", linewidth = 0.8) +
+  labs(
+    title = "Log Return Forecast with 95% Prediction Interval (ARIMA 4,1,4)",
+    x     = "Date",
+    y     = "Log Returns"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(plot.title = element_text(face = "bold"))
 ```
 
 
-#### ARIMA forecast 
+\newpage
+
+
+
+## 3.5 Forecast future 2026 data
 Using ARIMA(4,1,4), we forecast the next 30 days starting March 28, 2026. The predicted values appear relatively flat, which is expected for ARIMA models over short period of time. Since future white noise terms are unknown, the forecasts tend to settle toward a constant, resulting in a smoother and less stochastic pattern compared to the real data, as shown in @fig-full-arima-forecast.
 
 ```{r, include=FALSE}
