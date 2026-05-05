@@ -13,6 +13,35 @@ library(tseries)
 library(astsa)
 ```
 
+```{r, include=FALSE}
+#HELPER FUNCTIONS
+get_scaled_metrics <- function(errors, train_series) {
+  train_diffs <- abs(diff(as.numeric(train_series), lag = 1))
+  nonseasonal_scale <- mean(train_diffs)
+  nonseasonal_scale_sq <- mean(train_diffs^2)
+  
+  data.frame(
+    MAE   = mean(abs(errors), na.rm = TRUE),
+    RMSE  = sqrt(mean(errors^2, na.rm = TRUE)),
+    MASE  = mean(abs(errors / nonseasonal_scale), na.rm = TRUE),
+    MASSE = sqrt(mean(errors^2 / nonseasonal_scale_sq, na.rm = TRUE))
+  )
+}
+
+get_arima_metrics <- function(model, x_train, x_test) {
+  if (!is.null(model$pred)) {
+    pred   <- as.numeric(model$pred)
+    actual <- as.numeric(x_test)
+    errors <- actual - pred
+  } else {
+    errors <- as.numeric(model$fit$residuals)
+    errors <- errors[!is.na(errors)]
+  }
+  get_scaled_metrics(errors, x_train)
+}
+
+```
+
 # 1 Introduction
 
 Artificial Intelligence (AI) has been a hot topic in recent years, with it's wide applications in scientific discovery, advanced cybersecurity, and personalized AI agents. In the stock market, technology stock have accounted for 32% of global equity returns and 40% of total U.S. equity market returns since 2010 (Goldman Sachs, 2024), playing a dominant role in modern financial markets. Large-cap firms, such as Apple and Microsoft, represent a substantial share of total markets capitalization; consequently, their performance increasingly shapes the trajectory of major stock indices, including the S&P 500 and the NASDAQ Composite (Yahoo Finance). Since Technology companies are largely valued based on expectations of future innovation and scalability, breakthroughs can trigger significant revisions in investor sentiment, leading to movement in stock prices.
@@ -74,6 +103,44 @@ data <- data |>
 cutoff <- as.Date("2022-11-30")
 before_data <- data[data$Date < cutoff, ]
 after_data  <- data[data$Date >= cutoff, ]
+```
+
+```{r, include=FALSE}
+#| eval: true
+#| echo: false
+#| message: false
+#| warning: false
+ # log return the raw data
+data <- data |>
+  mutate(log_price = log(Price),
+         log_return = c(NA, diff(log_price)))
+
+before_data <- data |> filter(Date < cutoff)
+after_data  <- data |> filter(Date >= cutoff)
+```
+
+```{r}
+library(zoo)
+library(lubridate) 
+# [Link: Stack Overflow https://stackoverflow.com/questions/18755643/time-series-analysis-with-r-how-to-deal-with-daily-data]
+
+# Create a zoo object
+log_return_ts <- zoo(data$log_return[-1], order.by = data$Date[-1])
+
+#remove NA
+log_return_ts <- na.omit(log_return_ts)
+
+# Plot the time series
+#plot(log_return_ts, main = "Daily Time Series", xlab = "Date", ylab = "Log_return", type = "l", col = "blue")
+
+# part 3.3 
+x_train1 <- log_return_ts[index(log_return_ts) <= as.Date("2022-11-30")]
+x_test1 <- log_return_ts[index(log_return_ts) > as.Date("2022-11-30")]
+
+# part 3.4
+#2321*0.2 # 464 2024-05-21
+x_train2 <- log_return_ts[index(log_return_ts) <= as.Date("2024-05-21")]
+x_test2 <- log_return_ts[index(log_return_ts) > as.Date("2024-05-21")]
 ```
 
 ```{r}
@@ -139,17 +206,17 @@ The autocorrelation function (ACF) plot in @fig-rawacf demonstrates a strong cor
 
 ## 3.1 Fitting a regression model on price
 ```{r, include=FALSE}
-#| eval: true
-#| echo: false
-#| message: false
-#| warning: false
- # log return the raw data
-data <- data |>
-  mutate(log_price = log(Price),
-         log_return = c(NA, diff(log_price)))
-
-before_data <- data |> filter(Date < cutoff)
-after_data  <- data |> filter(Date >= cutoff)
+# #| eval: true
+# #| echo: false
+# #| message: false
+# #| warning: false
+#  # log return the raw data
+# data <- data |>
+#   mutate(log_price = log(Price),
+#          log_return = c(NA, diff(log_price)))
+# 
+# before_data <- data |> filter(Date < cutoff)
+# after_data  <- data |> filter(Date >= cutoff)
 ```
 
 ```{r}
@@ -293,7 +360,7 @@ pacf(diff(log(before_data$Price)))
 ```
 
 ### 3.3.1 Fitting ARIMA models
-Using the ACF and PACF plots, we can determine the appropriate order of the ARIMA model. According to @fig-logacfpacf, the ACF gradually tails off, suggesting the presence of autoregressive behavior. According to the PACF, there are strong spikes at lags 2, 4, 7, and 8, and several other significant lags. Based on these patterns, ARIMA(1,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(7,1,7), and ARIMA(8,1,8) models were fitted to the price data to capture the time series.
+Using the ACF and PACF plots, we can determine the appropriate order of the ARIMA model. According to @fig-logacfpacf, the ACF gradually tails off, suggesting the presence of autoregressive behavior. According to the PACF, there are strong spikes at lags 2, 4, 7, and 8, and several other significant lags. Based on these patterns, ARIMA(1,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(6,1,6), ARIMA(7,1,7), and ARIMA(8,1,8) models were fitted to the log price data to capture the time series.
 
 ```{r, include=FALSE}
 #| eval: true
@@ -301,15 +368,13 @@ Using the ACF and PACF plots, we can determine the appropriate order of the ARIM
 #| message: false
 #| warning: false
 #| results: 'hide'
-model1.1 <- sarima(part, p=1, d=1, q=1, no.constant=TRUE, details = FALSE)
-model2.2 <- sarima(part, p=2, d=1, q=2, no.constant=TRUE, details = FALSE)
-model3.3 <- sarima(part, p=4, d=1, q=4, no.constant=TRUE, details = FALSE)
-model4.4 <- sarima(part, p=6, d=1, q=6, no.constant=TRUE, details = FALSE)
-model5.5 <- sarima(part, p=7, d=1, q=7, no.constant=TRUE, details = FALSE)
-model6.6 <- sarima(part, p=8, d=1, q=8, no.constant=TRUE, details = FALSE)
+model11 <- sarima(part, p=1, d=1, q=1, no.constant=TRUE, details = FALSE)
+model22 <- sarima(part, p=2, d=1, q=2, no.constant=TRUE, details = FALSE)
+model33 <- sarima(part, p=4, d=1, q=4, no.constant=TRUE, details = FALSE)
+model44 <- sarima(part, p=6, d=1, q=6, no.constant=TRUE, details = FALSE)
+model55 <- sarima(part, p=7, d=1, q=7, no.constant=TRUE, details = FALSE)
+model66 <- sarima(part, p=8, d=1, q=8, no.constant=TRUE, details = FALSE)
 ```
-
-### 3.3.3 Benchmark methods
 
 ```{r}
 #| label: tbl-arima-comparison
@@ -319,30 +384,64 @@ model6.6 <- sarima(part, p=8, d=1, q=8, no.constant=TRUE, details = FALSE)
 #| message: false
 #| warning: false
 part_ICs <- rbind(
-  model1.1$ICs,
-  model2.2$ICs,
-  model3.3$ICs,
-  model4.4$ICs,
-  model5.5$ICs,
-  model6.6$ICs
+  model11$ICs,
+  model22$ICs,
+  model33$ICs,
+  model44$ICs,
+  model55$ICs,
+  model66$ICs
 )
 
 part_loglik <- c(
-  model1.1$loglik,
-  model2.2$loglik,
-  model3.3$loglik,
-  model4.4$loglik,
-  model5.5$loglik,
-  model6.6$loglik
+  logLik(model11$fit),
+  logLik(model22$fit),
+  logLik(model33$fit),
+  logLik(model44$fit),
+  logLik(model55$fit),
+  logLik(model66$fit)
 )
 part_results <- cbind(
   part_ICs,
-  part_loglik
+  "Log Likelihood" = part_loglik
 )
 rownames(part_results) <- c("ARIMA(1,1,1)", "ARIMA(2,1,2)","ARIMA(4,1,4)", "ARIMA(6,1,6)", "ARIMA(7,1,7)", "ARIMA(8,1,8)")
 
 part_results |> kable()
 ```
+
+```{r, include= FALSE}
+cat("train length:", length(x_train1), "\n")
+cat("test length:", length(x_test1), "\n")
+
+x_train_part <- ts(as.numeric(x_train1))
+x_test_part  <- ts(as.numeric(x_test1))
+
+fit111_part <- sarima.for(x_train_part, n.ahead=length(x_test_part), p=1, d=1, q=1, no.constant=TRUE)
+fit212_part <- sarima.for(x_train_part, n.ahead=length(x_test_part), p=2, d=1, q=2, no.constant=TRUE)
+fit414_part <- sarima.for(x_train_part, n.ahead=length(x_test_part), p=4, d=1, q=4, no.constant=TRUE)
+fit616_part <- sarima.for(x_train_part, n.ahead=length(x_test_part), p=6, d=1, q=6, no.constant=TRUE)
+fit717_part <- sarima.for(x_train_part, n.ahead=length(x_test_part), p=7, d=1, q=7, no.constant=TRUE)
+fit818_part <- sarima.for(x_train_part, n.ahead=length(x_test_part), p=8, d=1, q=8, no.constant=TRUE)
+
+forecast_models <- list(
+  "ARIMA(1,1,1)" = fit111_part,
+  "ARIMA(2,1,2)" = fit212_part,
+  "ARIMA(4,1,4)" = fit414_part,
+  "ARIMA(6,1,6)" = fit616_part,
+  "ARIMA(7,1,7)" = fit717_part,
+  "ARIMA(8,1,8)" = fit818_part
+)
+
+part_results <- do.call(rbind, lapply(forecast_models, get_arima_metrics, x_train = x_train_part, x_test  = x_test_part))
+
+```
+
+winning: 414 
+
+```{r}
+part_results |> kable(digits=5)
+```
+
 
 ```{r}
 #| eval: true
@@ -351,28 +450,15 @@ part_results |> kable()
 #| message: false
 #| warning: false
 #| results: 'hide'
-model5.5 <- sarima(part, p=7, d=1, q=7, no.constant=TRUE)
+sarima(part, p=7, d=1, q=7, no.constant=TRUE)
 ```
 
-<!----------------------------------------------------------------------------------->
+
+
+<!--------------------------------------------------------------->
 
 ```{r, include=FALSE}
-library(zoo)
-library(lubridate) 
-# [Link: Stack Overflow https://stackoverflow.com/questions/18755643/time-series-analysis-with-r-how-to-deal-with-daily-data]
-
-# Create a zoo object
-log_return_ts <- zoo(data$log_return, order.by = data$Date[-1])
-
-#remove NA
-log_return_ts <- na.omit(log_return_ts)
-
-# Plot the time series
-plot(log_return_ts, main = "Daily Time Series", xlab = "Date", ylab = "Log_return", type = "l", col = "blue")
-```
-
-```{r, include=FALSE}
-adf.test(log_return_ts)
+#adf.test(log_return_ts)
 ```
 
 ```{r, include=FALSE}
@@ -380,108 +466,88 @@ adf.test(log_return_ts)
 #| echo: false
 #| message: false
 #| warning: false
-x_train1 <- log_return_ts[index(log_return_ts) <= as.Date("2022-11-30")]
-x_test1 <- log_return_ts[index(log_return_ts) > as.Date("2022-11-30")]
+# x_train1 <- log_return_ts[index(log_return_ts) <= as.Date("2022-11-30")]
+# x_test1 <- log_return_ts[index(log_return_ts) > as.Date("2022-11-30")]
 
 #forecasts
 x_mean1 <- rep(mean(x_train1), length(x_test1)) #mean
 x_naive1 <- rep(tail(x_train1,1), length(x_test1)) #naive
 x_seasonal1 <- rep(c(tail(x_train1, 7)), length(x_test1)) #seasonal
 
-# forecast errors
-mean_errors1 <- x_test1 - x_mean1
-naive_errors1 <- x_test1 - x_naive1
-seasonal_errors1 <- x_test1 - x_seasonal1
+bench_part <- rbind(
+  Mean     = get_scaled_metrics(x_test1 - x_mean1, x_train1),
+  Naive    = get_scaled_metrics(x_test1 - x_naive1, x_train1),
+  Seasonal = get_scaled_metrics(x_test1 - x_seasonal1, x_train1)
+)
 
-# MAE(Scale-dependent Errors)
-mean_MAE1 <- mean(abs(mean_errors1), na.rm = TRUE)
-naive_MAE1 <- mean(abs(naive_errors1), na.rm = TRUE)
-seasonal_MAE1 <- mean(abs(seasonal_errors1), na.rm = TRUE)
+bench_part |> kable(digits=5, caption="Benchmark Forecast Errors-before ai")
 
-#RMSE
-mean_RMSE1 <- sqrt(mean(mean_errors1^2, na.rm = TRUE))
-naive_RMSE1 <- sqrt(mean(naive_errors1^2, na.rm = TRUE))
-seasonal_RMSE1 <- sqrt(mean(seasonal_errors1^2, na.rm = TRUE))
+# # forecast errors
+# mean_errors1 <- x_test1 - x_mean1
+# naive_errors1 <- x_test1 - x_naive1
+# seasonal_errors1 <- x_test1 - x_seasonal1
+# 
+# # MAE(Scale-dependent Errors)
+# mean_MAE1 <- mean(abs(mean_errors1), na.rm = TRUE)
+# naive_MAE1 <- mean(abs(naive_errors1), na.rm = TRUE)
+# seasonal_MAE1 <- mean(abs(seasonal_errors1), na.rm = TRUE)
+# 
+# #RMSE
+# mean_RMSE1 <- sqrt(mean(mean_errors1^2, na.rm = TRUE))
+# naive_RMSE1 <- sqrt(mean(naive_errors1^2, na.rm = TRUE))
+# seasonal_RMSE1 <- sqrt(mean(seasonal_errors1^2, na.rm = TRUE))
 ```
 
 ```{r, include=FALSE}
-#| eval: true
-#| echo: false
-#| message: false
-#| warning: false
-cat("MAE - Mean Forecast:     ", mean_MAE1, "\n")
-cat("MAE - Naive Forecast:    ", naive_MAE1, "\n")
-cat("MAE - Seasonal Forecast: ", seasonal_MAE1, "\n\n")
+# cat("MAE - Mean Forecast:     ", mean_MAE1, "\n")
+# cat("MAE - Naive Forecast:    ", naive_MAE1, "\n")
+# cat("MAE - Seasonal Forecast: ", seasonal_MAE1, "\n\n")
+# 
+# cat("RMSE - Mean Forecast:     ", mean_RMSE1, "\n")
+# cat("RMSE - Naive Forecast:    ", naive_RMSE1, "\n")
+# cat("RMSE - Seasonal Forecast: ", seasonal_RMSE1, "\n")
+```
 
-cat("RMSE - Mean Forecast:     ", mean_RMSE1, "\n")
-cat("RMSE - Naive Forecast:    ", naive_RMSE1, "\n")
-cat("RMSE - Seasonal Forecast: ", seasonal_RMSE1, "\n")
+```{r, include=FALSE}
+# n_train_part <- length(x_train1)
+# train_diffs_part  <- abs(diff(as.numeric(x_train1), lag = 1))
+# nonseasonal_scale_part <- mean(train_diffs_part)
+# nonseasonal_scale_sq_part <- mean(train_diffs_part^2)
+# 
+# # for(i in 2:n){
+# #   train_MAE <- abs(x_train2[i] - x_train2[i-1])
+# # }
+# # nonseasonal_scale <- sum(train_MAE)/(n-1)
+# # nonseasonal_scale_sq <- sum(train_MAE^2)/(n-1)
+# 
+# mean_MASE1 <- mean(abs(mean_errors1/nonseasonal_scale_part), na.rm = TRUE)
+# naive_MASE1 <- mean(abs(naive_errors1/nonseasonal_scale_part), na.rm = TRUE)
+# seasonal_MASE1 <- mean(abs(seasonal_errors1/nonseasonal_scale_part), na.rm = TRUE)
+# 
+# mean_MASSE1 <- sqrt(mean(mean_errors1^2/nonseasonal_scale_sq_part, na.rm = TRUE))
+# naive_MASSE1 <- sqrt(mean(naive_errors1^2/nonseasonal_scale_sq_part, na.rm = TRUE))
+# seasonal_MASSE1 <- sqrt(mean(seasonal_errors1^2/nonseasonal_scale_sq_part, na.rm = TRUE))
 ```
 
 ```{r}
-#| eval: true
-#| echo: false
-#| message: false
-#| warning: false
-n_train_part <- length(x_train1)
-train_diffs_part  <- abs(diff(as.numeric(x_train1), lag = 1))
-nonseasonal_scale_part <- mean(train_diffs_part)
-nonseasonal_scale_sq_part <- mean(train_diffs_part^2)
-
-# for(i in 2:n){
-#   train_MAE <- abs(x_train2[i] - x_train2[i-1])
-# }
-# nonseasonal_scale <- sum(train_MAE)/(n-1)
-# nonseasonal_scale_sq <- sum(train_MAE^2)/(n-1)
-
-mean_MASE1 <- mean(abs(mean_errors1/nonseasonal_scale_part), na.rm = TRUE)
-naive_MASE1 <- mean(abs(naive_errors1/nonseasonal_scale_part), na.rm = TRUE)
-seasonal_MASE1 <- mean(abs(seasonal_errors1/nonseasonal_scale_part), na.rm = TRUE)
-
-mean_MASSE1 <- sqrt(mean(mean_errors1^2/nonseasonal_scale_sq_part, na.rm = TRUE))
-naive_MASSE1 <- sqrt(mean(naive_errors1^2/nonseasonal_scale_sq_part, na.rm = TRUE))
-seasonal_MASSE1 <- sqrt(mean(seasonal_errors1^2/nonseasonal_scale_sq_part, na.rm = TRUE))
-```
-
-```{r, include=FALSE}
-x_train_part <- ts(as.numeric(x_train1))
-x_test_part  <- ts(as.numeric(x_test1))
-
-fit717 <- sarima.for(x_train_part, n.ahead = length(x_train_part), p = 7, d = 1, q = 7, no.constant = TRUE)
-
-pred717 <- fit717$pred
-
-actual_part <- x_test_part
-
-arimaMAE_part  <- mean(abs(as.numeric(actual_part) - as.numeric(pred717)))
-arimaRMSE_part <- sqrt(mean((as.numeric(actual_part) - as.numeric(pred717))^2))
-
-n_train717 <- length(x_train1)
-train_diffs717 <- abs(diff(x_train_part, lag = 1))
-nonseasonal_scale717 <- mean(train_diffs717)
-nonseasonal_scale_sq717 <- mean(train_diffs717^2)
-
-arimaMASE_part <- mean(abs((as.numeric(actual_part) - as.numeric(pred717)) / nonseasonal_scale717))
-
-arimaMASSE_part <- sqrt(mean((as.numeric(actual_part) - as.numeric(pred717))^2 / nonseasonal_scale_sq717, na.rm = TRUE))
-```
-
-```{r, include=FALSE}
 #| label: tbl-forecast_errors
 #| eval: true
 #| echo: false
 #| message: false
 #| warning: false
 
-forecast_table <- data.frame(
-  Method = c("Mean", "Naive", "Seasonal", "ARIMA(7,1,7)"),
-  MAE = c(mean_MAE1, naive_MAE1, seasonal_MAE1, arimaMAE_part),
-  RMSE = c(mean_RMSE1, naive_RMSE1, seasonal_RMSE1, arimaRMSE_part),
-  MASE = c(mean_MASE1, naive_MASE1, seasonal_MASE1, arimaMASSE_part),
-  MASSE = c(mean_MASSE1, naive_MASSE1, seasonal_MASSE1, arimaMASSE_part)
-)
+# forecast_table <- data.frame(
+#   Method = c("Mean", "Naive", "Seasonal", "ARIMA(7,1,7)"),
+#   MAE = c(mean_MAE1, naive_MAE1, seasonal_MAE1, arimaMAE_part),
+#   RMSE = c(mean_RMSE1, naive_RMSE1, seasonal_RMSE1, arimaRMSE_part),
+#   MASE = c(mean_MASE1, naive_MASE1, seasonal_MASE1, arimaMASSE_part),
+#   MASSE = c(mean_MASSE1, naive_MASSE1, seasonal_MASSE1, arimaMASSE_part)
+# )
+# 
+# kable(forecast_table, digits = 5, caption = "Forecast Errors")
 
-kable(forecast_table, digits = 5, caption = "Forecast Errors")
+# forecast_table_part <- rbind(bench_part, "ARIMA(7,1,7)" = arima_part)
+# kable(forecast_table_part, digits=5, caption="Forecast Errors")
 ```
 
 According to @tbl-forecast_errors MAE (Mean Absolute Error) and RMSE (Root Mean Squared Error), which measure the difference between actual and predicted values, are small for the mean method but also for all these benchmark methods. This suggests that the data prior to November 30, 2022 can effectively predict the data following the cutoff point. Furthermore, this suggests that AI have not yet contribute a significant impact in the stock market, at least in terms of predictability using these simple benchmark models. As a result, we will use the entire time frame, allocating 80% for training and 20% for testing, to build a forecast model for predicting prices in 2026.
@@ -494,7 +560,7 @@ The p values for Ljung-Box Statistic plots indicate that ARIMA(1,1,1) and ARIMA(
 
 
 # 3.4 Full time frame
-Using the ACF and PACF plots, we can determine the appropriate order of the ARIMA model. According to @fig-logacfpacf, the ACF gradually tails off, suggesting the presence of autoregressive behavior. According to the PACF, there are strong spikes at lags 2, 4, 7, and 8, and several other significant lags. Based on these patterns, ARIMA(1,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(7,1,7), and ARIMA(8,1,8) models were fitted to the price data to capture the time series.
+Using the ACF and PACF plots, we can determine the appropriate order of the ARIMA model. According to @fig-logacfpacf, the ACF gradually tails off, suggesting the presence of autoregressive behavior. According to the PACF, there are strong spikes at lags 2, 4, 7, and 8, and several other significant lags. Based on these patterns, ARIMA(1,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(7,1,7), and ARIMA(8,1,8) models were fitted to the log price data to capture the time series.
 
 ### 3.3.2 Model Choice
 ```{r, include=FALSE}
@@ -525,13 +591,10 @@ all_ICs <- rbind(
   model5$ICs
 )
 
-all_loglik <- c(
-  model1$loglik,
-  model2$loglik,
-  model3$loglik,
-  model4$loglik,
-  model5$loglik
-)
+all_loglik <- c(logLik(model1$fit), logLik(model2$fit), 
+                logLik(model3$fit), logLik(model4$fit), 
+                logLik(model5$fit))
+
 all_results <- cbind(
   all_ICs,
   logLik = all_loglik
@@ -540,6 +603,32 @@ rownames(all_results) <- c("ARIMA(1,1,1)", "ARIMA(2,1,2)","ARIMA(4,1,4)", "ARIMA
 
 all_results |> kable()
 ```
+
+```{r, include=FALSE}
+x_train_ts <- ts(as.numeric(x_train2))
+x_test_ts  <- ts(as.numeric(x_test2))
+
+fit111_full <- sarima.for(x_train_ts, n.ahead=length(x_test_ts), p=1, d=1, q=1, no.constant=TRUE)
+fit212_full <- sarima.for(x_train_ts, n.ahead=length(x_test_ts), p=2, d=1, q=2, no.constant=TRUE)
+fit414_full <- sarima.for(x_train_ts, n.ahead=length(x_test_ts), p=4, d=1, q=4, no.constant=TRUE)
+fit717_full <- sarima.for(x_train_ts, n.ahead=length(x_test_ts), p=7, d=1, q=7, no.constant=TRUE)
+fit818_full <- sarima.for(x_train_ts, n.ahead=length(x_test_ts), p=8, d=1, q=8, no.constant=TRUE)
+
+forecast_models_full <- list(
+  "ARIMA(1,1,1)" = fit111_full,
+  "ARIMA(2,1,2)" = fit212_full,
+  "ARIMA(4,1,4)" = fit414_full,
+  "ARIMA(7,1,7)" = fit717_full,
+  "ARIMA(8,1,8)" = fit818_full
+)
+
+full_results <- do.call(rbind, lapply(forecast_models_full, get_arima_metrics, x_train = x_train_ts, x_test  = x_test_ts))
+```
+
+```{r}
+full_results |> kable(digits=5)
+```
+
 
 Among the candidate models, ARIMA(4,1,4) was selected as the best fitting model, as it achieved the lowest AIC, AICc, and BIC values. While ARIMA(7,1,7) produced a very similar AIC, its notably higher BIC indicates that the additional parameters are not justified, making ARIMA(4,1,4) the preferred specification.
 
@@ -553,96 +642,80 @@ Among the candidate models, ARIMA(4,1,4) was selected as the best fitting model,
 model3 <- sarima(data$log_price, p=4, d=1, q=4, no.constant=TRUE)
 ```
 
-<!----------------------------------------------------------------------------------->
+<!--------------------------------------------------------------->
 
 
 ```{r, include=FALSE}
 # entire data set 2017/1/3 - 2026/3/27
 
-2321*0.2 # 464 2024-05-21
-
-x_train2 <- log_return_ts[index(log_return_ts) <= as.Date("2024-05-21")]
-x_test2 <- log_return_ts[index(log_return_ts) > as.Date("2024-05-21")]
+# #2321*0.2 # 464 2024-05-21
+# 
+# x_train2 <- log_return_ts[index(log_return_ts) <= as.Date("2024-05-21")]
+# x_test2 <- log_return_ts[index(log_return_ts) > as.Date("2024-05-21")]
 
 #forecasts
 x_mean2 <- rep(mean(x_train2), length(x_test2)) #mean
 x_naive2 <- rep(tail(x_train2,1), length(x_test2)) #naive
 x_seasonal2 <- rep(c(tail(x_train2, 7)), length(x_test2)) #seasonal
 
-# forecast errors
-mean_errors2 <- x_test2 - x_mean2
-naive_errors2 <- x_test2 - x_naive2
-seasonal_errors2 <- x_test2 - x_seasonal2
+# # forecast errors
+# mean_errors2 <- x_test2 - x_mean2
+# naive_errors2 <- x_test2 - x_naive2
+# seasonal_errors2 <- x_test2 - x_seasonal2
+# 
+# # MAE(Scale-dependent Errors)
+# mean_MAE2 <- mean(abs(mean_errors2), na.rm = TRUE)
+# naive_MAE2 <- mean(abs(naive_errors2), na.rm = TRUE)
+# seasonal_MAE2 <- mean(abs(seasonal_errors2), na.rm = TRUE)
+# 
+# #RMSE
+# mean_RMSE2 <- sqrt(mean(mean_errors2^2, na.rm = TRUE))
+# naive_RMSE2 <- sqrt(mean(naive_errors2^2, na.rm = TRUE))
+# seasonal_RMSE2 <- sqrt(mean(seasonal_errors2^2, na.rm = TRUE))
 
-# MAE(Scale-dependent Errors)
-mean_MAE2 <- mean(abs(mean_errors2), na.rm = TRUE)
-naive_MAE2 <- mean(abs(naive_errors2), na.rm = TRUE)
-seasonal_MAE2 <- mean(abs(seasonal_errors2), na.rm = TRUE)
+bench_full <- rbind(
+  Mean     = get_scaled_metrics(x_test2 - x_mean2,     x_train2),
+  Naive    = get_scaled_metrics(x_test2 - x_naive2,    x_train2),
+  Seasonal = get_scaled_metrics(x_test2 - x_seasonal2, x_train2)
+)
 
-#RMSE
-mean_RMSE2 <- sqrt(mean(mean_errors2^2, na.rm = TRUE))
-naive_RMSE2 <- sqrt(mean(naive_errors2^2, na.rm = TRUE))
-seasonal_RMSE2 <- sqrt(mean(seasonal_errors2^2, na.rm = TRUE))
-
+bench_full |> kable(digits=5, caption="Benchmark Forecast Errors - full")
 ```
 
 ```{r, include=FALSE}
-# problem here with MAPE b/c our data is around 0, so it blew up
-valid <- x_test2 != 0 & !is.na(x_test2)
-
-# percentage error
-mean_p_error <- 100*mean_errors2/x_test2[valid]
-naive_p_error <- 100*naive_errors2/x_test2[valid]
-seasonal_p_error <- 100*seasonal_errors2/x_test2[valid]
-
-#mean absolute percentage error
-mean_MAPE <- mean(abs(mean_p_error), na.rm = TRUE)
-naive_MAPE <- mean(abs(naive_p_error), na.rm = TRUE)
-seasonal_MAPE <- mean(abs(seasonal_p_error), na.rm = TRUE)
+# # problem here with MAPE b/c our data is around 0, so it blew up
+# valid <- x_test2 != 0 & !is.na(x_test2)
+# 
+# # percentage error
+# mean_p_error <- 100*mean_errors2/x_test2[valid]
+# naive_p_error <- 100*naive_errors2/x_test2[valid]
+# seasonal_p_error <- 100*seasonal_errors2/x_test2[valid]
+# 
+# #mean absolute percentage error
+# mean_MAPE <- mean(abs(mean_p_error), na.rm = TRUE)
+# naive_MAPE <- mean(abs(naive_p_error), na.rm = TRUE)
+# seasonal_MAPE <- mean(abs(seasonal_p_error), na.rm = TRUE)
 ```
 
 ```{r, include=FALSE}
-n_train <- length(x_train2)
-train_diffs <- abs(diff(as.numeric(x_train2), lag = 1))
-nonseasonal_scale <- mean(train_diffs)
-nonseasonal_scale_sq <- mean(train_diffs^2)
-
-# for(i in 2:n){
-#   train_MAE <- abs(x_train2[i] - x_train2[i-1])
-# }
-# nonseasonal_scale <- sum(train_MAE)/(n-1)
-# nonseasonal_scale_sq <- sum(train_MAE^2)/(n-1)
-
-mean_MASE <- mean(abs(mean_errors2/nonseasonal_scale), na.rm = TRUE)
-naive_MASE <- mean(abs(naive_errors2/nonseasonal_scale), na.rm = TRUE)
-seasonal_MASE <- mean(abs(seasonal_errors2/nonseasonal_scale), na.rm = TRUE)
-
-mean_MASSE <- sqrt(mean(mean_errors2^2/nonseasonal_scale_sq, na.rm = TRUE))
-naive_MASSE <- sqrt(mean(naive_errors2^2/nonseasonal_scale_sq, na.rm = TRUE))
-seasonal_MASSE <- sqrt(mean(seasonal_errors2^2/nonseasonal_scale_sq, na.rm = TRUE))
-```
-
-```{r, include = FALSE}
-x_train_ts <- ts(as.numeric(x_train2))
-x_test_ts  <- ts(as.numeric(x_test2))
-
-fit414 <- sarima.for(x_train_ts, n.ahead = length(x_test_ts), p = 4, d = 1, q = 4, no.constant = TRUE)
-
-pred414 <- fit414$pred
-
-actual <- x_test_ts
-
-arimaMAE  <- mean(abs(as.numeric(actual) - as.numeric(pred414)))
-arimaRMSE <- sqrt(mean((as.numeric(actual) - as.numeric(pred414))^2))
-
-n_train414 <- length(x_train2)
-train_diffs414 <- abs(diff(x_train_ts, lag = 1))
-nonseasonal_scale414 <- mean(train_diffs414)
-nonseasonal_scale_sq414 <- mean(train_diffs414^2)
-
-arimaMASE <- mean(abs((as.numeric(actual) - as.numeric(pred414)) / nonseasonal_scale414))
-
-arimaMASSE <- sqrt(mean((as.numeric(actual) - as.numeric(pred414))^2 / nonseasonal_scale_sq414, na.rm = TRUE))
+# n_train <- length(x_train2)
+# train_diffs <- abs(diff(as.numeric(x_train2), lag = 1))
+# nonseasonal_scale <- mean(train_diffs)
+# nonseasonal_scale_sq <- mean(train_diffs^2)
+# 
+# # for(i in 2:n){
+# #   train_MAE <- abs(x_train2[i] - x_train2[i-1])
+# # }
+# # nonseasonal_scale <- sum(train_MAE)/(n-1)
+# # nonseasonal_scale_sq <- sum(train_MAE^2)/(n-1)
+# 
+# mean_MASE <- mean(abs(mean_errors2/nonseasonal_scale), na.rm = TRUE)
+# naive_MASE <- mean(abs(naive_errors2/nonseasonal_scale), na.rm = TRUE)
+# seasonal_MASE <- mean(abs(seasonal_errors2/nonseasonal_scale), na.rm = TRUE)
+# 
+# mean_MASSE <- sqrt(mean(mean_errors2^2/nonseasonal_scale_sq, na.rm = TRUE))
+# naive_MASSE <- sqrt(mean(naive_errors2^2/nonseasonal_scale_sq, na.rm = TRUE))
+# seasonal_MASSE <- sqrt(mean(seasonal_errors2^2/nonseasonal_scale_sq, na.rm = TRUE))
 ```
 
 ```{r}
@@ -652,20 +725,24 @@ arimaMASSE <- sqrt(mean((as.numeric(actual) - as.numeric(pred414))^2 / nonseason
 #| message: false
 #| warning: false
 
-forecast_table <- data.frame(
-  Method = c("Mean", "Naive", "Seasonal", "ARIMA(4,1,4)"),
-  MAE = c(mean_MAE2, naive_MAE2, seasonal_MAE2, arimaMAE),
-  RMSE = c(mean_RMSE2, naive_RMSE2, seasonal_RMSE2, arimaRMSE),
-  MASE = c(mean_MASE, naive_MASE, seasonal_MASE, arimaMASE), #xs was meanMASE
-  MASSE = c(mean_MASSE, naive_MASSE, seasonal_MASSE, arimaMASSE)
-)
+# forecast_table <- data.frame(
+#   Method = c("Mean", "Naive", "Seasonal", "ARIMA(4,1,4)"),
+#   MAE = c(mean_MAE2, naive_MAE2, seasonal_MAE2, arimaMAE),
+#   RMSE = c(mean_RMSE2, naive_RMSE2, seasonal_RMSE2, arimaRMSE),
+#   MASE = c(mean_MASE, naive_MASE, seasonal_MASE, arimaMASE), #xs was meanMASE
+#   MASSE = c(mean_MASSE, naive_MASSE, seasonal_MASSE, arimaMASSE)
+# )
+# 
+# kable(forecast_table, digits = 5, caption = "Forecast Errors-full model")
 
-kable(forecast_table, digits = 5, caption = "Forecast Errors-full model")
+# forecast_table_full <- rbind(bench_full, "ARIMA(4,1,4)" = arima_full)
+# kable(forecast_table_full, digits=5, caption="Forecast Errors - Full Model")
+
 ```
 
 @tbl-forecast_errors_full shows the naive method has the lowest MAE while the mean method has the lowest RMSE. MAPE (Mean Absolute Percentage Error) is a percentage-based error metric that scales forecast errors relative to the actual values. However, MAPE(Mean Absolute Percentage Error) is not included in this comparison because the log return data fluctuates around zero, where some small values closer to zero make MAPE enormous and not a good parameter to look at. MASE (Mean Absolute Scaled Error) and MASSE (Root Mean Squared Scaled Error) are scaled error metrics, and they works by scaling errors based on the training MAE from a simple forecast method. This makes them stable because the denominator is a fixed constant derived from the training data, providing a more informative alternative when MAPE fails to give meaningful results. Based on the lowest MASE and RMSSE values, the mean method performs best overall. 
 
-To evaluate whether ARIMA(4,1,4) outperforms the mean method, we split the full time frame into 80% training and 20% testing, fitted ARIMA(4,1,4) on the training set, and computed forecast accuracy metrics as shown in @tbl-arima_forecast_check. Comparing with @tbl-forecast_errors_full, the MASE values are the same across both models, however ARIMA(4,1,4) achieves lower MAE, RMSE, and RMSSE, suggesting it is the better performing model. 
+To evaluate whether ARIMA(4,1,4) outperforms the mean method, we split the full time frame into 80% training and 20% testing, fitted ARIMA(4,1,4) on the training set, and computed forecast accuracy metrics as shown in @tbl-arima_forecast_check. Comparing with @tbl-forecast_errors_full, the MASE values are close across both models, however ARIMA(4,1,4) achieves lower MAE, RMSE, and RMSSE, suggesting it is the better performing model. 
 
 
 ```{r}
@@ -709,66 +786,38 @@ forecast_data <- data.frame(points = forecast, time = forecast_time, LB = LB, UB
 ggplot(data = original_data, aes(x = time, y = points)) + geom_line( ) +
   ylab("Log Returns") + 
   geom_line(data = forecast_data, aes(x = time, y = points), colour = "blue") + 
-  geom_ribbon(data = forecast_data, aes(x = time, ymin = LB, ymax = UB), 
-              fill = "lightblue", alpha = 0.5)
+  geom_ribbon(data = forecast_data, aes(x = time, ymin = LB, ymax = UB), fill = "lightblue", alpha = 0.5)
 
 ```
 
 Check if ARIMA model would produce a better prediction interval. 
 
-```{r, include=FALSE}
-# x_train2 <- log_return_ts[index(log_return_ts) <= as.Date("2024-05-21")]
-# x_test2  <- log_return_ts[index(log_return_ts) >  as.Date("2024-05-21")]
-# 
-# x_train_ts <- ts(as.numeric(x_train2))
-# x_test_ts  <- ts(as.numeric(x_test2))
-fit414_train <- arima(x_train_ts, order = c(4, 1, 4), include.mean = FALSE)
+```{r}
+library(forecast)
 
-# Forecast over test period
-n_ahead <- length(index(x_test2))
-fc <- predict(fit414_train, n.ahead = n_ahead)
+# convert keeping dates
+fit414_Arima <- Arima(as.numeric(x_train2), order=c(4,1,4), include.mean=FALSE)
+fc414 <- forecast(fit414_Arima, h=length(x_test2))
 
-forecast_vals <- as.numeric(fc$pred)
-forecast_timea <- index(x_test2)
-
-# 95% prediction intervals
-alpha   <- 0.05
-sigma   <- sqrt(sum((x_train_ts - mean(x_train_ts))^2) / (length(x_train_ts) - 1))
-c_val   <- qnorm(1 - alpha / 2)
-sigma_h <- sigma * sqrt(1:n_ahead)
-
-LBa <- forecast_vals - c_val * sigma_h
-UBa <- forecast_vals + c_val * sigma_h
-
-# Data frames
-df_original <- data.frame(
-  time   = index(log_return_ts),
-  points = as.numeric(log_return_ts)
+# build data frames with actual dates
+df_train <- data.frame(date=index(x_train2), value=as.numeric(x_train2))
+df_test  <- data.frame(date=index(x_test2),  value=as.numeric(x_test2))
+df_fc    <- data.frame(
+  date  = index(x_test2),
+  mean  = as.numeric(fc414$mean),
+  lo95  = as.numeric(fc414$lower[,2]),
+  hi95  = as.numeric(fc414$upper[,2])
 )
 
-df_forecast <- data.frame(
-  time   = forecast_timea,
-  points = forecast_vals,
-  LB     = LBa,
-  UB     = UBa
-)
-
-# Plot
-ggplot(df_original, aes(x = time, y = points)) +
-  geom_line(color = "gray40", linewidth = 0.5) +
-  geom_ribbon(data = df_forecast, aes(x = time, ymin = LB, ymax = UB),
-              fill = "lightblue", alpha = 0.5) +
-  geom_line(data = df_forecast, aes(x = time, y = points),
-            color = "blue", linewidth = 0.8) +
-  labs(
-    title = "Log Return Forecast with 95% Prediction Interval (ARIMA 4,1,4)",
-    x     = "Date",
-    y     = "Log Returns"
-  ) +
-  theme_minimal(base_size = 13) +
-  theme(plot.title = element_text(face = "bold"))
+ggplot() +
+  geom_line(data=df_train, aes(x=date, y=value), color="black") +
+  geom_line(data=df_test, aes(x=date, y=value, color="Actual")) +
+  geom_line(data=df_fc, aes(x=date, y=mean,  color="Forecast")) +
+  geom_ribbon(data=df_fc,  aes(x=date, ymin=lo95, ymax=hi95), fill="lightblue", alpha=0.5) +
+  scale_color_manual(values=c("Actual"="red", "Forecast"="blue")) +
+  ggtitle("ARIMA(4,1,4) Forecast vs Test Set") +
+  labs(title="ARIMA(4,1,4) Forecast vs Test Set", x="Date", y="Log Price", color="") + theme(legend.position=c(1,1), legend.justification=c(1,1))
 ```
-
 
 \newpage
 
@@ -791,6 +840,8 @@ final_forecasted <- exp(forecasted)
 #| warning: false
 #| fig-height: 10
 #| fig-width: 6
+
+#https://www.geeksforgeeks.org/r-language/sarima-in-r/
 
 par(mfrow = c(2, 1))
 
