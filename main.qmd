@@ -137,7 +137,20 @@ The autocorrelation function (ACF) plot in @fig-rawacf demonstrates a strong cor
 
 # 3 Methods and Results
 
-### 3.1 Fitting a regression model on price
+## 3.1 Fitting a regression model on price
+```{r, include=FALSE}
+#| eval: true
+#| echo: false
+#| message: false
+#| warning: false
+ # log return the raw data
+data <- data |>
+  mutate(log_price = log(Price),
+         log_return = c(NA, diff(log_price)))
+
+before_data <- data |> filter(Date < cutoff)
+after_data  <- data |> filter(Date >= cutoff)
+```
 
 ```{r}
 #| label: tbl-log-return
@@ -223,20 +236,7 @@ A robust regression approach was considered too. However, since robust methods d
 # robust$Summary_Table
 ```
 
-### 3.2 Differencing on log price
-```{r, include=FALSE}
-#| eval: true
-#| echo: false
-#| message: false
-#| warning: false
- # log return the raw data
-data <- data |>
-  mutate(log_price = log(Price),
-         log_return = c(NA, diff(log_price)))
-
-before_data <- data |> filter(Date < cutoff)
-after_data  <- data |> filter(Date >= cutoff)
-```
+## 3.2 Differencing on log price
 
 To stabalize the variance and ensure stationarity, we applied a natural logarithmic transformation. The first difference of the log price series, known as the log return, was then used to remove the trend and produce a stationary series suitable for model estimation. @fig-logreturn shows the log return over time. While the log return mostly fluctuates around a mean of zero with small fluctuations, there are few large spikes. The biggest fluctuations occur around 2020 when the pandemic began, suggesting that the pandemic can might casue substantial uncertainty and sharp movements in the market.
 
@@ -273,27 +273,27 @@ adf.test(na.omit(data$log_return))
 ```
 Although, in @fig-logacfpacf, the ACF shows there still exists few autocorrelation coefficients outside the significance boundaries, the ADF test was conducted for a formal assessment. The test yielded a p-value of 0.01, providing strong empirical evidence to reject the null hypothesis of a unit root and confirming that the log return series is stationary.
 
-# 3.3 Before AI predicting after AI
-We are interested in how significant the data after November 30, 2022, when ChatGPT got launched, is for forecasting future stock market prices. To do this, we consider data frames of 3 different time sets: January 3, 2017 to November 30, 2022,  November 30, 2022 to March 27, 2026, and January 3, 2017 to March 27, 2026. 
+## 3.3 Using price before AI to predict price after AI
+We were interested in how significant the data after November 30, 2022, when ChatGPT got launched, is for forecasting future stock market prices. To do this, we consider data frames of 3 different time sets: January 3, 2017 to November 30, 2022,  November 30, 2022 to March 27, 2026, and January 3, 2017 to March 27, 2026. 
 
 We aimed to examine whether AI has had an unexpected impact on the stock market and contributed to its fluctuations. We use data from January 3, 2017 to November 30, 2022 to forecast data after November 30, 2022.
 
-We will use seirs from January 3, 2017 to November 30, 2022 to determine an ARIMA model that best explains the data before AI starts. Will use both the AIC, AICc and BIC, and point camparison metrics like MAE, RMSE to determine the best model. 
+We will use seirs from January 3, 2017 to November 30, 2022 to determine an ARIMA model that best explains the data before AI starts. We will use both the AIC, AICc and BIC, and point camparison metrics like MAE, RMSE to determine the best model for forecasting. 
 
 We then apply three "benchmark" forecasting methods: the mean method, the naïve method, and the seasonal naïve method. Mean method forecasts all future values as equal to the average (or mean) of the training set. Naive method set all forecast values to be the value of the last observation of the historical data. Seasonal naive method set each forecast to be equal to the last observed value from the same season. In this case, we tested for weekly seasonality using this method. The drift method, which accounts for the amount of change over time, and the decomposition method, which captures the underlying trend, are both considered unnecessary as differencing has already been applied to the log return data.
 
-Lastly, we will compare whether if the ARIMA methods and the benchmark method to pick the best model.
+Lastly, we will compare the performance of ARIMA methods and the benchmark methods.
 
 
-```{r}
+```{r, include=FALSE}
 part <- ts(as.numeric(log(before_data$Price)))
 
 acf(diff(log(before_data$Price)))
 pacf(diff(log(before_data$Price)))
 ```
 
-(改)
-Using the ACF and PACF plots, we can determine the appropriate order of the ARIMA model. According to 图, the ACF gradually tails off, suggesting the presence of autoregressive behavior. According to the PACF, there are strong spikes at lags 1, 6, 7，8, and 9, and several other significant lags. Based on these patterns, ARIMA(1,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(6,1,6), and ARIMA(7,1,7) models were fitted to the price data to capture the time series. 看着没4，试试圆一下或者删了
+### 3.3.1 Fitting ARIMA models
+Using the ACF and PACF plots, we can determine the appropriate order of the ARIMA model. According to @fig-logacfpacf, the ACF gradually tails off, suggesting the presence of autoregressive behavior. According to the PACF, there are strong spikes at lags 2, 4, 7, and 8, and several other significant lags. Based on these patterns, ARIMA(1,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(7,1,7), and ARIMA(8,1,8) models were fitted to the price data to capture the time series.
 
 ```{r, include=FALSE}
 #| eval: true
@@ -309,7 +309,15 @@ model5.5 <- sarima(part, p=7, d=1, q=7, no.constant=TRUE, details = FALSE)
 model6.6 <- sarima(part, p=8, d=1, q=8, no.constant=TRUE, details = FALSE)
 ```
 
+### 3.3.3 Benchmark methods
+
 ```{r}
+#| label: tbl-arima-comparison
+#| tbl-cap: "Comparison of Model Performance"
+#| eval: true
+#| echo: false
+#| message: false
+#| warning: false
 part_ICs <- rbind(
   model1.1$ICs,
   model2.2$ICs,
@@ -368,6 +376,10 @@ adf.test(log_return_ts)
 ```
 
 ```{r, include=FALSE}
+#| eval: true
+#| echo: false
+#| message: false
+#| warning: false
 x_train1 <- log_return_ts[index(log_return_ts) <= as.Date("2022-11-30")]
 x_test1 <- log_return_ts[index(log_return_ts) > as.Date("2022-11-30")]
 
@@ -393,6 +405,10 @@ seasonal_RMSE1 <- sqrt(mean(seasonal_errors1^2, na.rm = TRUE))
 ```
 
 ```{r, include=FALSE}
+#| eval: true
+#| echo: false
+#| message: false
+#| warning: false
 cat("MAE - Mean Forecast:     ", mean_MAE1, "\n")
 cat("MAE - Naive Forecast:    ", naive_MAE1, "\n")
 cat("MAE - Seasonal Forecast: ", seasonal_MAE1, "\n\n")
@@ -403,10 +419,14 @@ cat("RMSE - Seasonal Forecast: ", seasonal_RMSE1, "\n")
 ```
 
 ```{r}
+#| eval: true
+#| echo: false
+#| message: false
+#| warning: false
 n_train_part <- length(x_train1)
 train_diffs_part  <- abs(diff(as.numeric(x_train1), lag = 1))
-nonseasonal_scale_part <- mean(train_diffs)
-nonseasonal_scale_sq_part <- mean(train_diffs^2)
+nonseasonal_scale_part <- mean(train_diffs_part)
+nonseasonal_scale_sq_part <- mean(train_diffs_part^2)
 
 # for(i in 2:n){
 #   train_MAE <- abs(x_train2[i] - x_train2[i-1])
@@ -416,14 +436,14 @@ nonseasonal_scale_sq_part <- mean(train_diffs^2)
 
 mean_MASE1 <- mean(abs(mean_errors1/nonseasonal_scale_part), na.rm = TRUE)
 naive_MASE1 <- mean(abs(naive_errors1/nonseasonal_scale_part), na.rm = TRUE)
-seasonal_MASE1 <- mean(abs(seasonal_errors2/nonseasonal_scale_part), na.rm = TRUE)
+seasonal_MASE1 <- mean(abs(seasonal_errors1/nonseasonal_scale_part), na.rm = TRUE)
 
 mean_MASSE1 <- sqrt(mean(mean_errors1^2/nonseasonal_scale_sq_part, na.rm = TRUE))
 naive_MASSE1 <- sqrt(mean(naive_errors1^2/nonseasonal_scale_sq_part, na.rm = TRUE))
 seasonal_MASSE1 <- sqrt(mean(seasonal_errors1^2/nonseasonal_scale_sq_part, na.rm = TRUE))
 ```
 
-```{r}
+```{r, include=FALSE}
 x_train_part <- ts(as.numeric(x_train1))
 x_test_part  <- ts(as.numeric(x_test1))
 
@@ -441,12 +461,12 @@ train_diffs717 <- abs(diff(x_train_part, lag = 1))
 nonseasonal_scale717 <- mean(train_diffs717)
 nonseasonal_scale_sq717 <- mean(train_diffs717^2)
 
-arimaMASE_part <- mean(abs((as.numeric(actual) - as.numeric(pred717)) / nonseasonal_scale717))
+arimaMASE_part <- mean(abs((as.numeric(actual_part) - as.numeric(pred717)) / nonseasonal_scale717))
 
-arimaMASSE_part <- sqrt(mean((as.numeric(actual) - as.numeric(pred414))^2 / nonseasonal_scale_sq414, na.rm = TRUE))
+arimaMASSE_part <- sqrt(mean((as.numeric(actual_part) - as.numeric(pred717))^2 / nonseasonal_scale_sq717, na.rm = TRUE))
 ```
 
-```{r}
+```{r, include=FALSE}
 #| label: tbl-forecast_errors
 #| eval: true
 #| echo: false
@@ -471,7 +491,24 @@ According to @tbl-forecast_errors MAE (Mean Absolute Error) and RMSE (Root Mean 
 
 The p values for Ljung-Box Statistic plots indicate that ARIMA(1,1,1) and ARIMA(2,1,2) are not good fits, because p values are insignificant for all lags. ACF plots for ARIMA (4,1,4), ARIMA(7,1,7), and ARIMA (8,1,8) looks stationary, but QQ plots show the points are deviated from the reference line, meaning the normality condition is not met. To determine which model performs the best, we compare the model AIC, AICc, and BIC values.
 
+
+
+# 3.4 Full time frame
+Using the ACF and PACF plots, we can determine the appropriate order of the ARIMA model. According to @fig-logacfpacf, the ACF gradually tails off, suggesting the presence of autoregressive behavior. According to the PACF, there are strong spikes at lags 2, 4, 7, and 8, and several other significant lags. Based on these patterns, ARIMA(1,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(7,1,7), and ARIMA(8,1,8) models were fitted to the price data to capture the time series.
+
 ### 3.3.2 Model Choice
+```{r, include=FALSE}
+#| eval: true
+#| echo: false
+#| message: false
+#| warning: false
+#| results: 'hide'
+model1 <- sarima(data$log_price, p=1, d=1, q=1, no.constant=TRUE) 
+model2 <- sarima(data$log_price, p=2, d=1, q=2, no.constant=TRUE) 
+model3 <- sarima(data$log_price, p=4, d=1, q=4, no.constant=TRUE)
+model4 <- sarima(data$log_price, p=7, d=1, q=7, no.constant=TRUE)
+model5 <- sarima(data$log_price, p=8, d=1, q=8, no.constant=TRUE)
+```
 
 ```{r}
 #| label: tbl-model-comparison
@@ -505,22 +542,6 @@ all_results |> kable()
 ```
 
 Among the candidate models, ARIMA(4,1,4) was selected as the best fitting model, as it achieved the lowest AIC, AICc, and BIC values. While ARIMA(7,1,7) produced a very similar AIC, its notably higher BIC indicates that the additional parameters are not justified, making ARIMA(4,1,4) the preferred specification.
-
-# 3.4 Full time frame
-Using the ACF and PACF plots, we can determine the appropriate order of the ARIMA model. According to @fig-logacfpacf, the ACF gradually tails off, suggesting the presence of autoregressive behavior. According to the PACF, there are strong spikes at lags 2, 4, 7, and 8, and several other significant lags. Based on these patterns, ARIMA(1,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(7,1,7), and ARIMA(8,1,8) models were fitted to the price data to capture the time series.
-
-```{r, include=FALSE}
-#| eval: true
-#| echo: false
-#| message: false
-#| warning: false
-#| results: 'hide'
-model1 <- sarima(data$log_price, p=1, d=1, q=1, no.constant=TRUE) 
-model2 <- sarima(data$log_price, p=2, d=1, q=2, no.constant=TRUE) 
-model3 <- sarima(data$log_price, p=4, d=1, q=4, no.constant=TRUE)
-model4 <- sarima(data$log_price, p=7, d=1, q=7, no.constant=TRUE)
-model5 <- sarima(data$log_price, p=8, d=1, q=8, no.constant=TRUE)
-```
 
 ```{r}
 #| eval: true
@@ -695,7 +716,7 @@ ggplot(data = original_data, aes(x = time, y = points)) + geom_line( ) +
 
 Check if ARIMA model would produce a better prediction interval. 
 
-```{r}
+```{r, include=FALSE}
 # x_train2 <- log_return_ts[index(log_return_ts) <= as.Date("2024-05-21")]
 # x_test2  <- log_return_ts[index(log_return_ts) >  as.Date("2024-05-21")]
 # 
