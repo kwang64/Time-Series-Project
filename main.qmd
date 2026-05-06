@@ -119,7 +119,7 @@ before_data <- data |> filter(Date < cutoff)
 after_data  <- data |> filter(Date >= cutoff)
 ```
 
-```{r}
+```{r, include=FALSE}
 library(zoo)
 library(lubridate) 
 # [Link: Stack Overflow https://stackoverflow.com/questions/18755643/time-series-analysis-with-r-how-to-deal-with-daily-data]
@@ -340,16 +340,15 @@ adf.test(na.omit(data$log_return))
 ```
 Although, in @fig-logacfpacf, the ACF shows there still exists few autocorrelation coefficients outside the significance boundaries, the ADF test was conducted for a formal assessment. The test yielded a p-value of 0.01, providing strong empirical evidence to reject the null hypothesis of a unit root and confirming that the log return series is stationary.
 
-## 3.3 Using price before AI to predict price after AI
-We were interested in how significant the data after November 30, 2022, when ChatGPT got launched, is for forecasting future stock market prices. To do this, we consider data frames of 3 different time sets: January 3, 2017 to November 30, 2022,  November 30, 2022 to March 27, 2026, and January 3, 2017 to March 27, 2026. 
+## 3.3 Using Pre-AI Prices to Predict Post-AI Prices
+ 
+We aimed to examine whether the emergence of AI had an unexpected impact on the stock market and contributed to increased price fluctuations. To investigate this, we used stock price data from January 3, 2017 to November 30, 2022 to forecast stock prices after November 30, 2022.
 
-We aimed to examine whether AI has had an unexpected impact on the stock market and contributed to its fluctuations. We use data from January 3, 2017 to November 30, 2022 to forecast data after November 30, 2022.
+First, we fitted ARIMA models using the historical price data from January 3, 2017 to November 30, 2022. We used AIC, AICc and BIC metrics to determine the best model for forecasting. 
 
-We will use seirs from January 3, 2017 to November 30, 2022 to determine an ARIMA model that best explains the data before AI starts. We will use both the AIC, AICc and BIC, and point camparison metrics like MAE, RMSE to determine the best model for forecasting. 
+We then applied three "benchmark" forecasting methods: the mean method, the naive method, and the seasonal naive method. Mean method forecasts all future values as equal to the average of the training set. Naive method set all forecast values to be the value of the last observation of the historical data. Seasonal naive method set each forecast to be equal to the last observed value from the same season. In this case, we tested for weekly seasonality using this method. 
 
-We then apply three "benchmark" forecasting methods: the mean method, the naïve method, and the seasonal naïve method. Mean method forecasts all future values as equal to the average (or mean) of the training set. Naive method set all forecast values to be the value of the last observation of the historical data. Seasonal naive method set each forecast to be equal to the last observed value from the same season. In this case, we tested for weekly seasonality using this method. The drift method, which accounts for the amount of change over time, and the decomposition method, which captures the underlying trend, are both considered unnecessary as differencing has already been applied to the log return data.
-
-Lastly, we will compare the performance of ARIMA methods and the benchmark methods.
+Finally, we compared the performance of the ARIMA model and the benchmark methods using point comparison metrics like MAE, RMSE, MASE and MASSE.
 
 
 ```{r, include=FALSE}
@@ -359,8 +358,10 @@ acf(diff(log(before_data$Price)))
 pacf(diff(log(before_data$Price)))
 ```
 
-### 3.3.1 Fitting ARIMA models
+
 Using the ACF and PACF plots, we can determine the appropriate order of the ARIMA model. According to @fig-logacfpacf, the ACF gradually tails off, suggesting the presence of autoregressive behavior. According to the PACF, there are strong spikes at lags 2, 4, 7, and 8, and several other significant lags. Based on these patterns, ARIMA(1,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(6,1,6), ARIMA(7,1,7), and ARIMA(8,1,8) models were fitted to the log price data to capture the time series.
+
+The p values for Ljung-Box Statistic plots indicate that ARIMA(1,1,1) and ARIMA(2,1,2) are not good fits, because p values are significant for all lags. ACF plots for ARIMA (4,1,4), ARIMA(7,1,7), and ARIMA (8,1,8) looks stationary, but QQ plots show the points are deviated from the reference line, meaning the normality condition is not met. To determine which model performs the best, we compare the model AIC, AICc, BIC, and log likelihood values.
 
 ```{r, include=FALSE}
 #| eval: true
@@ -436,9 +437,10 @@ part_results <- do.call(rbind, lapply(forecast_models, get_arima_metrics, x_trai
 
 ```
 
-winning: 414 
+We also compared the MAE, RMSE, MASE, and MASSE for all ARIMA models. There was no significant difference between models. Based on the AICc values, ARIMA (7,1,7) has the lower AICc values. Therefore, ARIMA(7,1,7) was picked as the best ARIMA model for forecasting. 
 
-```{r}
+```{r, include=FALSE}
+#| results: 'hide'
 part_results |> kable(digits=5)
 ```
 
@@ -455,7 +457,7 @@ sarima(part, p=7, d=1, q=7, no.constant=TRUE)
 
 
 
-<!--------------------------------------------------------------->
+
 
 ```{r, include=FALSE}
 #adf.test(log_return_ts)
@@ -466,8 +468,8 @@ sarima(part, p=7, d=1, q=7, no.constant=TRUE)
 #| echo: false
 #| message: false
 #| warning: false
-# x_train1 <- log_return_ts[index(log_return_ts) <= as.Date("2022-11-30")]
-# x_test1 <- log_return_ts[index(log_return_ts) > as.Date("2022-11-30")]
+x_train1 <- log_return_ts[index(log_return_ts) <= as.Date("2022-11-30")]
+x_test1  <- log_return_ts[index(log_return_ts) > as.Date("2022-11-30")]
 
 #forecasts
 x_mean1 <- rep(mean(x_train1), length(x_test1)) #mean
@@ -475,58 +477,58 @@ x_naive1 <- rep(tail(x_train1,1), length(x_test1)) #naive
 x_seasonal1 <- rep(c(tail(x_train1, 7)), length(x_test1)) #seasonal
 
 bench_part <- rbind(
-  Mean     = get_scaled_metrics(x_test1 - x_mean1, x_train1),
-  Naive    = get_scaled_metrics(x_test1 - x_naive1, x_train1),
-  Seasonal = get_scaled_metrics(x_test1 - x_seasonal1, x_train1)
+  Mean     = get_scaled_metrics(as.numeric(x_test1) - x_mean1, x_train1),
+  Naive    = get_scaled_metrics(as.numeric(x_test1) - x_naive1, x_train1),
+  Seasonal = get_scaled_metrics(as.numeric(x_test1) - x_seasonal1, x_train1)
 )
 
 bench_part |> kable(digits=5, caption="Benchmark Forecast Errors-before ai")
 
-# # forecast errors
-# mean_errors1 <- x_test1 - x_mean1
-# naive_errors1 <- x_test1 - x_naive1
-# seasonal_errors1 <- x_test1 - x_seasonal1
-# 
-# # MAE(Scale-dependent Errors)
-# mean_MAE1 <- mean(abs(mean_errors1), na.rm = TRUE)
-# naive_MAE1 <- mean(abs(naive_errors1), na.rm = TRUE)
-# seasonal_MAE1 <- mean(abs(seasonal_errors1), na.rm = TRUE)
-# 
-# #RMSE
-# mean_RMSE1 <- sqrt(mean(mean_errors1^2, na.rm = TRUE))
-# naive_RMSE1 <- sqrt(mean(naive_errors1^2, na.rm = TRUE))
-# seasonal_RMSE1 <- sqrt(mean(seasonal_errors1^2, na.rm = TRUE))
+#forecast errors
+mean_errors1 <- x_test1 - x_mean1
+naive_errors1 <- x_test1 - x_naive1
+seasonal_errors1 <- x_test1 - x_seasonal1
+
+# MAE(Scale-dependent Errors)
+mean_MAE1 <- mean(abs(mean_errors1), na.rm = TRUE)
+naive_MAE1 <- mean(abs(naive_errors1), na.rm = TRUE)
+seasonal_MAE1 <- mean(abs(seasonal_errors1), na.rm = TRUE)
+
+#RMSE
+mean_RMSE1 <- sqrt(mean(mean_errors1^2, na.rm = TRUE))
+naive_RMSE1 <- sqrt(mean(naive_errors1^2, na.rm = TRUE))
+seasonal_RMSE1 <- sqrt(mean(seasonal_errors1^2, na.rm = TRUE))
 ```
 
 ```{r, include=FALSE}
-# cat("MAE - Mean Forecast:     ", mean_MAE1, "\n")
-# cat("MAE - Naive Forecast:    ", naive_MAE1, "\n")
-# cat("MAE - Seasonal Forecast: ", seasonal_MAE1, "\n\n")
-# 
-# cat("RMSE - Mean Forecast:     ", mean_RMSE1, "\n")
-# cat("RMSE - Naive Forecast:    ", naive_RMSE1, "\n")
-# cat("RMSE - Seasonal Forecast: ", seasonal_RMSE1, "\n")
+cat("MAE - Mean Forecast:     ", mean_MAE1, "\n")
+cat("MAE - Naive Forecast:    ", naive_MAE1, "\n")
+cat("MAE - Seasonal Forecast: ", seasonal_MAE1, "\n\n")
+
+cat("RMSE - Mean Forecast:     ", mean_RMSE1, "\n")
+cat("RMSE - Naive Forecast:    ", naive_RMSE1, "\n")
+cat("RMSE - Seasonal Forecast: ", seasonal_RMSE1, "\n")
 ```
 
 ```{r, include=FALSE}
-# n_train_part <- length(x_train1)
-# train_diffs_part  <- abs(diff(as.numeric(x_train1), lag = 1))
-# nonseasonal_scale_part <- mean(train_diffs_part)
-# nonseasonal_scale_sq_part <- mean(train_diffs_part^2)
-# 
-# # for(i in 2:n){
-# #   train_MAE <- abs(x_train2[i] - x_train2[i-1])
-# # }
-# # nonseasonal_scale <- sum(train_MAE)/(n-1)
-# # nonseasonal_scale_sq <- sum(train_MAE^2)/(n-1)
-# 
-# mean_MASE1 <- mean(abs(mean_errors1/nonseasonal_scale_part), na.rm = TRUE)
-# naive_MASE1 <- mean(abs(naive_errors1/nonseasonal_scale_part), na.rm = TRUE)
-# seasonal_MASE1 <- mean(abs(seasonal_errors1/nonseasonal_scale_part), na.rm = TRUE)
-# 
-# mean_MASSE1 <- sqrt(mean(mean_errors1^2/nonseasonal_scale_sq_part, na.rm = TRUE))
-# naive_MASSE1 <- sqrt(mean(naive_errors1^2/nonseasonal_scale_sq_part, na.rm = TRUE))
-# seasonal_MASSE1 <- sqrt(mean(seasonal_errors1^2/nonseasonal_scale_sq_part, na.rm = TRUE))
+n_train_part <- length(x_train1)
+train_diffs_part  <- abs(diff(as.numeric(x_train1), lag = 1))
+nonseasonal_scale_part <- mean(train_diffs_part)
+nonseasonal_scale_sq_part <- mean(train_diffs_part^2)
+
+# for(i in 2:n){
+#   train_MAE <- abs(x_train2[i] - x_train2[i-1])
+# }
+# nonseasonal_scale <- sum(train_MAE)/(n-1)
+# nonseasonal_scale_sq <- sum(train_MAE^2)/(n-1)
+
+mean_MASE1 <- mean(abs(mean_errors1/nonseasonal_scale_part), na.rm = TRUE)
+naive_MASE1 <- mean(abs(naive_errors1/nonseasonal_scale_part), na.rm = TRUE)
+seasonal_MASE1 <- mean(abs(seasonal_errors1/nonseasonal_scale_part), na.rm = TRUE)
+
+mean_MASSE1 <- sqrt(mean(mean_errors1^2/nonseasonal_scale_sq_part, na.rm = TRUE))
+naive_MASSE1 <- sqrt(mean(naive_errors1^2/nonseasonal_scale_sq_part, na.rm = TRUE))
+seasonal_MASSE1 <- sqrt(mean(seasonal_errors1^2/nonseasonal_scale_sq_part, na.rm = TRUE))
 ```
 
 ```{r}
@@ -536,33 +538,21 @@ bench_part |> kable(digits=5, caption="Benchmark Forecast Errors-before ai")
 #| message: false
 #| warning: false
 
-# forecast_table <- data.frame(
-#   Method = c("Mean", "Naive", "Seasonal", "ARIMA(7,1,7)"),
-#   MAE = c(mean_MAE1, naive_MAE1, seasonal_MAE1, arimaMAE_part),
-#   RMSE = c(mean_RMSE1, naive_RMSE1, seasonal_RMSE1, arimaRMSE_part),
-#   MASE = c(mean_MASE1, naive_MASE1, seasonal_MASE1, arimaMASSE_part),
-#   MASSE = c(mean_MASSE1, naive_MASSE1, seasonal_MASSE1, arimaMASSE_part)
-# )
-# 
-# kable(forecast_table, digits = 5, caption = "Forecast Errors")
+arima717_part <- part_results[rownames(part_results) == "ARIMA(7,1,7)", ]
 
-# forecast_table_part <- rbind(bench_part, "ARIMA(7,1,7)" = arima_part)
-# kable(forecast_table_part, digits=5, caption="Forecast Errors")
+forecast_table_part <- rbind(bench_part, arima717_part)
+kable(forecast_table_part, digits=5, caption="Forecast Errors")
 ```
 
-According to @tbl-forecast_errors MAE (Mean Absolute Error) and RMSE (Root Mean Squared Error), which measure the difference between actual and predicted values, are small for the mean method but also for all these benchmark methods. This suggests that the data prior to November 30, 2022 can effectively predict the data following the cutoff point. Furthermore, this suggests that AI have not yet contribute a significant impact in the stock market, at least in terms of predictability using these simple benchmark models. As a result, we will use the entire time frame, allocating 80% for training and 20% for testing, to build a forecast model for predicting prices in 2026.
+According to @tbl-forecast_errors, MAE (Mean Absolute Error) and RMSE (Root Mean Squared Error), which measure the difference between actual and predicted values, are small for the mean method but also for naive and ARIMA models. Hence, a simple model like Mean method can effectively predict the data following the cutoff date using data prior to November 30, 2022. We assumed ARIMA would do a better job, because it's a more comprehensive model. But our results showed that simple model can be powerful and was good enough for this prediction.
+
+Furthermore, this suggests that AI have not yet contribute a significant impact in the stock market, at least in terms of predictability using our proposed models. As a result, we will use the entire time frame, allocating 80% for training and 20% for testing, to build a forecast model for predicting prices in 2026.
 
 
-### 3.3.1 Model Diagnosis
+# 3.4 Comparing Models Over the Full Time Frame
+80% of data from January 3, 2017 to March 27, 2026 were used as the training set, and 20% of data were used for testing in building our models. Similar to section 3.3, ARIMA(1,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(7,1,7), and ARIMA(8,1,8) models were fitted. The best ARIMA model was determined using AIC, AICc, BIC, and log liklihood. In addition, three benchmark methods -- the mean method, naive method, and seasonal naive method -- were applied for comparison. The best-performing ARIMA model was then compared against these benchmark methods.
 
-The p values for Ljung-Box Statistic plots indicate that ARIMA(1,1,1) and ARIMA(2,1,2) are not good fits, because p values are insignificant for all lags. ACF plots for ARIMA (4,1,4), ARIMA(7,1,7), and ARIMA (8,1,8) looks stationary, but QQ plots show the points are deviated from the reference line, meaning the normality condition is not met. To determine which model performs the best, we compare the model AIC, AICc, and BIC values.
-
-
-
-# 3.4 Full time frame
-Using the ACF and PACF plots, we can determine the appropriate order of the ARIMA model. According to @fig-logacfpacf, the ACF gradually tails off, suggesting the presence of autoregressive behavior. According to the PACF, there are strong spikes at lags 2, 4, 7, and 8, and several other significant lags. Based on these patterns, ARIMA(1,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(7,1,7), and ARIMA(8,1,8) models were fitted to the log price data to capture the time series.
-
-### 3.3.2 Model Choice
+First, we fit the proposed ARIMA models. The diagnostics plots suggested that ARIMA(4,1,4), ARIMA(7,1,7) and ARIMA (8,1,8) might be the better model, because some p values of the Ljung box test were insignificant. To formally determine the most appropriate model structure, we compared the candidate models using the criteria shown in @tbl-model-comparison. 
 ```{r, include=FALSE}
 #| eval: true
 #| echo: false
@@ -625,10 +615,9 @@ forecast_models_full <- list(
 full_results <- do.call(rbind, lapply(forecast_models_full, get_arima_metrics, x_train = x_train_ts, x_test  = x_test_ts))
 ```
 
-```{r}
+```{r, include=FALSE}
 full_results |> kable(digits=5)
 ```
-
 
 Among the candidate models, ARIMA(4,1,4) was selected as the best fitting model, as it achieved the lowest AIC, AICc, and BIC values. While ARIMA(7,1,7) produced a very similar AIC, its notably higher BIC indicates that the additional parameters are not justified, making ARIMA(4,1,4) the preferred specification.
 
@@ -642,16 +631,15 @@ Among the candidate models, ARIMA(4,1,4) was selected as the best fitting model,
 model3 <- sarima(data$log_price, p=4, d=1, q=4, no.constant=TRUE)
 ```
 
-<!--------------------------------------------------------------->
 
 
 ```{r, include=FALSE}
 # entire data set 2017/1/3 - 2026/3/27
 
 # #2321*0.2 # 464 2024-05-21
-# 
-# x_train2 <- log_return_ts[index(log_return_ts) <= as.Date("2024-05-21")]
-# x_test2 <- log_return_ts[index(log_return_ts) > as.Date("2024-05-21")]
+#
+x_train2 <- log_return_ts[index(log_return_ts) <= as.Date("2024-05-21")]
+x_test2 <- log_return_ts[index(log_return_ts) > as.Date("2024-05-21")]
 
 #forecasts
 x_mean2 <- rep(mean(x_train2), length(x_test2)) #mean
@@ -679,7 +667,7 @@ bench_full <- rbind(
   Seasonal = get_scaled_metrics(x_test2 - x_seasonal2, x_train2)
 )
 
-bench_full |> kable(digits=5, caption="Benchmark Forecast Errors - full")
+# bench_full |> kable(digits=5, caption="Benchmark Forecast Errors - full")
 ```
 
 ```{r, include=FALSE}
@@ -732,17 +720,16 @@ bench_full |> kable(digits=5, caption="Benchmark Forecast Errors - full")
 #   MASE = c(mean_MASE, naive_MASE, seasonal_MASE, arimaMASE), #xs was meanMASE
 #   MASSE = c(mean_MASSE, naive_MASSE, seasonal_MASSE, arimaMASSE)
 # )
-# 
+#
 # kable(forecast_table, digits = 5, caption = "Forecast Errors-full model")
+arima414_full <- full_results[rownames(full_results) == "ARIMA(4,1,4)", ]
 
-# forecast_table_full <- rbind(bench_full, "ARIMA(4,1,4)" = arima_full)
-# kable(forecast_table_full, digits=5, caption="Forecast Errors - Full Model")
-
+forecast_table_full <- rbind(bench_full, arima414_full)
+kable(forecast_table_full, digits=5, caption="Forecast Errors - Full Model")
 ```
 
-@tbl-forecast_errors_full shows the naive method has the lowest MAE while the mean method has the lowest RMSE. MAPE (Mean Absolute Percentage Error) is a percentage-based error metric that scales forecast errors relative to the actual values. However, MAPE(Mean Absolute Percentage Error) is not included in this comparison because the log return data fluctuates around zero, where some small values closer to zero make MAPE enormous and not a good parameter to look at. MASE (Mean Absolute Scaled Error) and MASSE (Root Mean Squared Scaled Error) are scaled error metrics, and they works by scaling errors based on the training MAE from a simple forecast method. This makes them stable because the denominator is a fixed constant derived from the training data, providing a more informative alternative when MAPE fails to give meaningful results. Based on the lowest MASE and RMSSE values, the mean method performs best overall. 
+@tbl-forecast_errors_full shows the naive method has the lowest MAE while the mean method has the lowest RMSE. MAPE (Mean Absolute Percentage Error) is a percentage-based error metric that scales forecast errors relative to the actual values. However, MAPE(Mean Absolute Percentage Error) is not included in this comparison because the log return data fluctuates around zero, where some small values closer to zero make MAPE enormous and not a good parameter to look at. MASE (Mean Absolute Scaled Error) and MASSE (Root Mean Squared Scaled Error) are scaled error metrics, and they works by scaling errors based on the training MAE from a simple forecast method. This makes them stable because the denominator is a fixed constant derived from the training data, providing a more informative alternative when MAPE fails to give meaningful results. Based on the lowest MASE and RMSSE values, the mean method and ARIMA (4,1,4) performs best overall. Again, the simple models performed as good as ARIMA. The differences between models were extremely small. ARIMA model may not be needed to do forecasting in this case.
 
-To evaluate whether ARIMA(4,1,4) outperforms the mean method, we split the full time frame into 80% training and 20% testing, fitted ARIMA(4,1,4) on the training set, and computed forecast accuracy metrics as shown in @tbl-arima_forecast_check. Comparing with @tbl-forecast_errors_full, the MASE values are close across both models, however ARIMA(4,1,4) achieves lower MAE, RMSE, and RMSSE, suggesting it is the better performing model. 
 
 
 ```{r}
@@ -790,9 +777,15 @@ ggplot(data = original_data, aes(x = time, y = points)) + geom_line( ) +
 
 ```
 
-Check if ARIMA model would produce a better prediction interval. 
+@fig-arima-forecast shows the forecast results using ARIMA (4,1,4) compared with the actual data. The forecast of ARIMA was close to zero. This was because the log returns had a mean close to zero. However, the prediction interval did not capture all the actual data, especially during period of extreme volatility. Therefore, while ARIMA is effective in predicting the average behavior, it struggles to predict sudden large change in the data. 
 
 ```{r}
+#| label: fig-arima-forecast
+#| fig-cap: "ARIMA(4,1,4) Forecast Data Compared with Actual Data"
+#| eval: true
+#| echo: false
+#| message: false
+#| warning: false
 library(forecast)
 
 # convert keeping dates
@@ -816,15 +809,13 @@ ggplot() +
   geom_ribbon(data=df_fc,  aes(x=date, ymin=lo95, ymax=hi95), fill="lightblue", alpha=0.5) +
   scale_color_manual(values=c("Actual"="red", "Forecast"="blue")) +
   ggtitle("ARIMA(4,1,4) Forecast vs Test Set") +
-  labs(title="ARIMA(4,1,4) Forecast vs Test Set", x="Date", y="Log Price", color="") + theme(legend.position=c(1,1), legend.justification=c(1,1))
+  labs(title="ARIMA(4,1,4) Forecast vs Test Set", x="Date", y="Log Return", color="") + theme(legend.position=c(1,1), legend.justification=c(1,1))
 ```
 
-\newpage
 
 
-
-## 3.5 Forecast future 2026 data
-Using ARIMA(4,1,4), we forecast the next 30 days starting March 28, 2026. The predicted values appear relatively flat, which is expected for ARIMA models over short period of time. Since future white noise terms are unknown, the forecasts tend to settle toward a constant, resulting in a smoother and less stochastic pattern compared to the real data, as shown in @fig-full-arima-forecast.
+## 3.5 Forecast Future 2026 Data
+Using ARIMA(4,1,4), we forecast the next 30 days starting March 28, 2026. The predicted values appeared relatively flat, which is expected for ARIMA models over short period of time. Since future white noise terms are unknown, the forecasts tend to settle toward a constant, resulting in a smoother and less stochastic pattern compared to the real data, as shown in @fig-full-arima-forecast. Although this is a simple model, the forecasts are still useful for understanding the potential short-term behavior and overall trend of the market. Investors and analysts may use these forecasts as a reference for anticipating future movement patterns, and supporting short-term decision making.
 
 ```{r, include=FALSE}
 forecasted <- sarima.for(ts(data$log_price), n.ahead = 30, p = 4, d = 1, q = 4, no.constant = TRUE)$pred
@@ -865,9 +856,11 @@ points(forecast_df$Date, forecast_df$Price, col = "red")
 
 # 4 Conclusions
 
-This project tests whether the rise of AI has significantly affected the behavior of technology sector stock using the XLK ETF price data from 2019 to 2026. Using regression, we compared the price over time before and after the appearance of ChatGPT. It suggests that price after AI increased more quickly than before. However, since price data are non stationary, this result should be interpreted with caution. To address this issue, we transforme the data into log return to make the data stationary. Based on this transformation, we find no significant evidence that AI has had a meaningful effect on stock returns. An ARIMA(4,1,4) model is then fitted to capture the time series dynamics.
+This project used stock price data from January 3, 2017 to March 27, 2026 to study stock price behavior and forecasting performance using ARIMA models and benchmark forecasting methods. The first part of the project investigated whether the emergence of AI, specifically following the launch of ChatGPT on November 30, 2022, had a meaningful impact on stock market. To examine this question, we used data before November 30, 2022 to forecast stock prices after this date. Several ARIMA models and three benchmark forecasting methods were proposed and evaluated. The results showed that the performance of the best performing ARIMA models was similar to that of the simpler benchmark methods. Overall, the models were able to forecast the post-AI period reasonably well using pre-AI data, suggesting that the introduction of AI did not produce a significant change in the stock price. Therefore, we used the full data frame for forecasting. 
 
-The second part of this project is to compare different model's predictive power. ARIMA(4,1,4) has the better predictive power compared to benchmark methods with lower MAE, RMSE, and RMSSE. The model is subsequently used to generate forecasts for the next month.
+In the second part, we used the full time frame from January 3, 2017 to March 27, 2026 to further evaluate forecasting performance. Multiple ARIMA models and benchmark methods were compared accuracy metrics. The results again indicated no substantial difference in predictive performance among the models. Among the ARIMA models, ARIMA(4,1,4) was selected as the preferred model based on model selection criteria, and it was used to forecast stock prices for the following 30 days.
+
+
 
 # 5 Limitations
 
