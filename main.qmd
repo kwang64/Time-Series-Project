@@ -68,7 +68,7 @@ Furthermore, the adoption of AI applications has also reshaped market narratives
 Understanding whether such a technological breakthrough corresponds to a lasting change in market behavior is crucial for investors and policymakers. Persistent shifts in return patterns can affect risk assessment, portfolio allocation, and forecasting models in financial market analysis. Financial return series are time-dependent and often exhibit changes in volatility and growth dynamics. If the emergence of artificial intelligence has altered investor expectations, this effect may manifest as a structural break in the return-generating process.
 
 
-# 3 Methodology
+# 3 Data
 
 ## 3.1 Data Overview
 
@@ -871,12 +871,15 @@ In the second part, we used the full time frame from January 3, 2017 to March 27
 
 
 # 6 Limitations
+This study has several limitations. First, ARIMA models are designed to capture patterns within the historical structure of a time series, but technological breakthroughs such as generative AI may create nonlinear or structural changes that are difficult to detect using traditional forecasting models. Therefore, the finding that ARIMA models performed similarly to benchmark methods does not necessarily imply that AI had no impact on the stock market. Instead, the effects of AI may appear through changes in long-term valuation, investor expectations, or sector-wide capital allocation rather than short-term return predictability.
 
-There are some potential limitations for the dataset. One of the limitations is that there's possibility for State Street to rebalance the stock composition over time, which means the dataset may not remain fully consistent throughout the study period. The companies in the XLK ETF are selected based on the GICS. However, the GICS structure is reviewed annually, meaning State Street need to adjust the XLK portfolio at least on a yearly base. This could reduce the reliability of comparing stock performance across different years and weaken the robustness of analysis.
+Second, XLK represents a broad technology-sector ETF containing firms with very different levels of AI exposure. While some companies, such as NVIDIA and Microsoft, experienced substantial market revaluation related to AI development, other firms within the ETF may have been less affected. Aggregating all firms into a single sector-level index may dilute firm-specific responses to AI and reduce the visibility of technological shocks in the overall time series.
 
-Another limitation is the dependency of the dataset. In the data analysis, we noticed few large spikes in the log return plot, suggeting factors like pandemics may also attributes to the stock price fluctuation. In Section 3, we found out the time series data points remain highly correlated even after the data transformation. For instance, the QQ plot indicates deviations from normality, suggesting that model assumptions may not hold and prediction intervals may be unreliable. In addition, our model focuses on the short-term impacts after the release of ChatGPT, but the effect of AI may be better reflected in a long term trend rather than a boom. The log transformation may mask the underlying long term trend, because it removes the trend to make the data stationary. The log transformation only focuses on daily changes rather than long-term structural changes. As a results, model based on the log transformation is better at studying short-term market reaction but may be less effective at capturing long-term changes in the market over time.
+Another limitation is the use of November 30, 2022, the release date of ChatGPT, as the single cutoff point for identifying a potential structural break. Financial markets may react gradually to technological innovation, and investors may have partially priced in AI expectations before the public release of ChatGPT. In addition, later developments such as GPT-4, AI infrastructure expansion, and semiconductor demand may also contribute to changes in technology-sector valuation. Therefore, AI adoption may be better understood as an evolving process rather than a single event.
 
-Also, AR, MA, ARMA are all models that are only a function of the time series itself. They do not include other important factors, such as government policy or economic policy changes. There are many other factors that affects the stock market that we did not incorporate, such as economic indicators and interest rates. Since stock market is influenced by many external variables, excluding these factors may limit the strength and forecasting accuracy of the models.
+In addition, the post-AI observation period remains relatively short compared to the long-term nature of technological revolutions discussed in prior literature. Historical innovations such as the microprocessor revolution and the information technology revolution unfolded over many years. As a result, the long-term effects of generative AI on market structure and productivity may not yet be fully observable within the current study period.
+
+Finally, stock market returns are inherently noisy and difficult to predict. Financial return series often behave similarly to random walks, meaning even substantial economic or technological changes may not produce large improvements in forecasting accuracy. Consequently, the similarity in performance between ARIMA and benchmark methods may partly reflect the fundamental unpredictability of short-term stock returns rather than the absence of AI-related market effects.
 
 # 7 Future Directions
 
@@ -887,3 +890,25 @@ Although we have not been able to conclude AI has significant impact on the beha
 It is also possible to incorporate the method proposed by Campos-Martins (2024) with our model. After identifying notable development by AI companies, we can adjust our predictors to improve accuracy. For example, we could include an indicator variable that captures major AI events or achievements. This would allow the model to account for changes over time driven by new innovations, instead of relying only on fixed predictors.
 
 Finally, our research should follow a consistent process where we constantly refit the models as the stock market changes over time. Updating the model with new data can help us see whether there are any long-term effects or clear shifts in the data, especially as AI continues to develop and become more widely used.
+
+# Reference
+Amin, M. R. M., Asbi, A., Sivakumaran, V. M., Kim, J., & Septiarini, E. (2025). Artificial Intelligence (AI) adoption in marketing strategies: Navigating the present and shaping the future business landscape. Results in Engineering. 
+https://www.sciencedirect.com/science/article/pii/S2590291125007776
+
+Barrientos, A. (2026). OpenAI $85.2B valuation record fueled by ChatGPT. Yahoo Finance. https://finance.yahoo.com/sectors/technology/articles/openai-852b-valuation-record-chatgpt-145356819.html
+
+Digital Journal. (2026). Ten technology breakthroughs to watch out for in 2026. https://www.digitaljournal.com/tech-science/ten-technology-breakthroughs-to-watch-out-for-in-2026/article
+
+Investing.com. (2026). Coty’s perfume business takes another knock with David Beckham fragrance lawsuit. https://www.investing.com/news/stock-market-news/cotys-perfume-business-takes-another-knock-with-david-beckham-fragrance-lawsuit-4653620
+
+Laitner, J., & Stolyarov, D. (2003). Technological change and the stock market. The American Economic Review, 93(4), 1240–1267.
+
+Morningstar. (2026). Nvidia used to benefit from AI spending increases. So why did the stock just slide? https://www.morningstar.com/news/marketwatch/20260430238/nvidia-used-to-benefit-from-ai-spending-increases-so-why-did-the-stock-just-slide
+
+Nerac. (n.d.). Technology breakthrough definition. https://www.nerac.com/glossary/technology-breakthrough/
+
+Sofe Advisors. (n.d.). Technology company valuation methods: A complete guide. https://soferadvisors.com/insights/blog/technology-company-valuation-methods-a-complete-guide/
+
+State Street Global Advisors. (2026). Technology Select Sector SPDR Fund (XLK) fact sheet. https://www.ssga.com/library-content/products/factsheets/etfs/us/factsheet-us-en-xlk.pdf
+
+Yahoo Finance. (2026). Large-cap stocks screener. https://finance.yahoo.com/research-hub/screener/large-cap-stocks/
