@@ -49,31 +49,34 @@ get_arima_metrics <- function(model, x_train, x_test) {
 
 # 1 Introduction
 
-Artificial Intelligence (AI) has been a hot topic in recent years, with it's wide applications in scientific discovery, advanced cybersecurity, and personalized AI agents. In the stock market, technology stock have accounted for 32% of global equity returns and 40% of total U.S. equity market returns since 2010 (Goldman Sachs, 2024), playing a dominant role in modern financial markets. Large-cap firms, such as Apple and Microsoft, represent a substantial share of total markets capitalization; consequently, their performance increasingly shapes the trajectory of major stock indices, including the S&P 500 and the NASDAQ Composite (Yahoo Finance). Since Technology companies are largely valued based on expectations of future innovation and scalability, breakthroughs can trigger significant revisions in investor sentiment, leading to movement in stock prices.
 
-Breakthrough in new technology also impacts a firm's business model. For technology-centric companies in particular, launching a novel product pften increases company's net valuation (McKinsey, 2016). As several tech giants have launched flagship AI products, such as Gemini from Google and Claude from Anthropic, their market valuations and stock prices have shifted accordingly (Investing.com, 2026). The impact of novel AI product is seemly significant since it can impacts the company's valuation that the company does not even need to be publicly traded. The hard launch of ChatGPT in November 2022 significantly increased OpenAI's, a non-profit artificial intelligence research company, private valuation and attracted substantial investment, with its estimated worth skyrockeying from roughly \$20 billion to \$85.2 billion by 2026 (Barrientos, 2026).
+Artificial Intelligence (AI) has been a hot topic in recent years, with its wide applications in scientific discovery, advanced cybersecurity, and personalized AI agents. In the stock market, technology stocks have accounted for 32% of global equity returns and 40% of total U.S. equity market returns since 2010 (Goldman Sachs, 2024), playing a dominant role in modern financial markets. Large-cap firms, such as Apple and Microsoft, represent a substantial share of total market capitalization; consequently, their performance increasingly shapes the trajectory of major stock indices, including the S&P 500 and the NASDAQ Composite (Yahoo Finance). 
 
-Furthermore, the adoption of AI applications has also reshaped market narratives surrounding technological growth and productivity. Beyond the firms that directly launching AI models, companies perceived as key beneficiaries of AI infrastructure, most notably the GPU manufacturing company NVIDIA Corporation, have also experienced significant revaluations (Morningstar, 2026). This shift suggests that innovation shocks may influence not only short-term prices but also the broader structural dynamics of the overall technology sector.
+A technological breakthrough is broadly defined as a significant and sudden advancement in science or engineering that introduces new capabilities, reshapes industries, and overcomes previous technical limitations (Sandle, 2025). The launch of ChatGPT was one of the first moments when the general public experienced the transformative potential of artificial intelligence in everyday life on a large scale. Therefore, in this report we consider the release of ChatGPT to represent a major technological breakthrough.
 
-With the crucial role of technology stock in the general financial market and AI product's impacts on company's evaluation, we want to investigate whether the technological breakthrough impact the technology sector stock market. This report investigates:
+The adoption of AI applications has reshaped market narratives surrounding technological growth and productivity (Amin et al., 2024). Given that technology companies are largely valued based on expectations of future innovation and scalability, breakthroughs can trigger revisions in investor sentiment, leading to movement in stock prices. 
 
--   Did the stock return pattern changes after the emergence of AI products?
+With the crucial role of technology stocks in the broader financial market and the rapid emergence of AI products, we want to investigate whether technological breakthroughs impact the technology sector stock market. Specifically, this report examines whether the release of ChatGPT corresponds to a statistically significant shift in the Technology Select Sector SPDR Fund (XLK) price dynamics from 2017 to 2026 using ARIMA and benchmark forecasting methods
 
--   What's the predicted stock return based on current stock market trend?
+# 2 Background 
+Previous studies have suggested that major technological innovations can reshape stock market valuation and investor expectations. Laitner and Stolyarov argue that technological revolutions, such as the microprocessor revolution, may lead to market revaluation because new technologies can make existing physical and intangible capital less valuable while increasing expectations for future productivity (Laitner and Stolyarov, 2003). Their framework suggests that technological shocks may influence not only individual firms but also broader market dynamics and sector-wide valuation patterns. This framework provides theoretical support for our investigation of whether generative AI corresponds to a detectable shift in XLK price dynamics following the release of ChatGPT.
 
-Specifically, we evaluate this change by analyzing the Technology Select Sector SPDR Fund (XLK) using ARIMA models to examine whether the release of ChatGPT corresponds to a statistically significant shift in XLK price dynamics from 2017 to 2024.
+Breakthroughs in new technology also impact a firm's business model. For technology-centric companies in particular, launching a novel product often increases the company's net valuation (McKinsey, 2016). As several tech giants have launched flagship AI products, such as Gemini from Google and Claude from Anthropic, their market valuations and stock prices have shifted accordingly (Investing.com, 2026). The impact of a novel AI product seems significant since it can impact the company's valuation that the company does not even need to be publicly traded. The hard launch of ChatGPT in November 2022 significantly increased OpenAI's, a non-profit artificial intelligence research company, private valuation and attracted substantial investment, with its estimated worth skyrocketing from roughly \$20 billion to \$85.2 billion by 2026 (Barrientos, 2026).
 
-Understanding whether such a technological breakthrough corresponds to a lasting change in market behavior is crucial for investors and policymakers. Persistent shifts in return pattern can affect risk assessment, portfolio allocation, and forecasting models in financial market analysis. Financial return series are time-dependent and often exhibit changes in volatility and growth dynamics. If the emergence of artificial intelligence has altered investor expectations, this effect may manifest as a structural break in the return-generating process.
+Furthermore, the adoption of AI applications has also reshaped market narratives surrounding technological growth and productivity. Beyond the firms that are directly launching AI models, companies perceived as key beneficiaries of AI infrastructure, most notably the GPU manufacturing company NVIDIA Corporation, have also experienced significant revaluations (Morningstar, 2026). This shift suggests that innovation shocks may influence not only short-term prices but also the broader structural dynamics of the overall technology sector.
 
-# 2 Methodology
+Understanding whether such a technological breakthrough corresponds to a lasting change in market behavior is crucial for investors and policymakers. Persistent shifts in return patterns can affect risk assessment, portfolio allocation, and forecasting models in financial market analysis. Financial return series are time-dependent and often exhibit changes in volatility and growth dynamics. If the emergence of artificial intelligence has altered investor expectations, this effect may manifest as a structural break in the return-generating process.
 
-## 2.1 Data Overview
+
+# 3 Methodology
+
+## 3.1 Data Overview
 
 This report uses the daily XLK fund return price from Investing.com, a financial data platform that offers real-time data. The XLK stock price is collected by S&P Dow Jones Indices and State Street Global Advisory. S&P Dow Jones Indices is in charge of creating the company benchmark on entering the technology company stock pool. The State Street Global Advisors selected particular stocks into the combination of the XLK stock.
 
 We chose the XLK because it's a comprehensive fund that captures an effective representation of the technology sector of the S&P 500 Index. The XLK has a 4-star in the Morningstar rating by March 2026, indicating an above-average performance that the XLK is in the top 22.5% to 32.5% of technology category. The XLK ETF provides precise exposure to companies from technology hardware, storage and peripherals; software; communications equipment; semiconductors and semiconductor equipment; IT services; and electronic equipment, instruments and components industries (State Street). This feature allows investors to take strategic or tactical positions at a more targeted level than traditional style based investing. The companies in the XLK are selected from the S&P 500 based on the Global Industry Classification Standard (GICS) where companies are assigned to a single classification based on revenue.
 
-## 2.2 Data Collection
+## 3.2 Data Collection
 
 Using the dataset from the investing website, we derive the following variables for the analysis:
 
@@ -89,7 +92,7 @@ Using the dataset from the investing website, we derive the following variables 
 
 The dataset comprises daily observations spanning from January 3, 2017, to March 28, 2026. This time frame was specifically selected to ensure that the launch of ChatGPT (November 30, 2022) serves as a central pivot point, providing a balanced sample size for comparing pre- and post-innovation market dynamics
 
-## 2.3 Data Cleaning
+## 3.3 Data Cleaning
 
 In the raw dataset from the investing website, we observe the point information on weekends are carried over from the Friday of the same week with empty number in `Vol`. We removed these points since they are not consistent with the general pattern and can be misleading in identifying the long-term price fluctuation. We then split the dataset into two groups, using the time stamp November 30, 2022 (the release date of chatGPT) as the cutoff.
 
@@ -207,9 +210,9 @@ The autocorrelation function (ACF) plot in @fig-rawacf demonstrates a strong cor
 
 
 
-# 3 Methods and Results
+# 4 Methods and Results
 
-## 3.1 Fitting a regression model on price
+## 4.1 Fitting a regression model on price
 ```{r, include=FALSE}
 # #| eval: true
 # #| echo: false
@@ -308,7 +311,7 @@ A robust regression approach was considered too. However, since robust methods d
 # robust$Summary_Table
 ```
 
-## 3.2 Differencing on log price
+## 4.2 Differencing on log price
 
 To stabalize the variance and ensure stationarity, we applied a natural logarithmic transformation. The first difference of the log price series, known as the log return, was then used to remove the trend and produce a stationary series suitable for model estimation. @fig-logreturn shows the log return over time. While the log return mostly fluctuates around a mean of zero with small fluctuations, there are few large spikes. The biggest fluctuations occur around 2020 when the pandemic began, suggesting that the pandemic can might casue substantial uncertainty and sharp movements in the market.
 
@@ -345,7 +348,7 @@ adf.test(na.omit(data$log_return))
 ```
 Although, in @fig-logacfpacf, the ACF shows there still exists few autocorrelation coefficients outside the significance boundaries, the ADF test was conducted for a formal assessment. The test yielded a p-value of 0.01, providing strong empirical evidence to reject the null hypothesis of a unit root and confirming that the log return series is stationary.
 
-## 3.3 Using Pre-AI Prices to Predict Post-AI Prices
+## 4.3 Using Pre-AI Prices to Predict Post-AI Prices
  
 We aimed to examine whether the emergence of AI had an unexpected impact on the stock market and contributed to increased price fluctuations. To investigate this, we used stock price data from January 3, 2017 to November 30, 2022 to forecast stock prices after November 30, 2022.
 
@@ -554,7 +557,7 @@ According to @tbl-forecast_errors, MAE (Mean Absolute Error) and RMSE (Root Mean
 Furthermore, this suggests that AI have not yet contribute a significant impact in the stock market, at least in terms of predictability using our proposed models. As a result, we will use the entire time frame, allocating 80% for training and 20% for testing, to build a forecast model for predicting prices in 2026.
 
 
-# 3.4 Comparing Models Over the Full Time Frame
+# 4.4 Comparing Models Over the Full Time Frame
 80% of data from January 3, 2017 to March 27, 2026 were used as the training set, and 20% of data were used for testing in building our models. Similar to section 3.3, ARIMA(1,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(7,1,7), and ARIMA(8,1,8) models were fitted. The best ARIMA model was determined using AIC, AICc, BIC, and log liklihood. In addition, three benchmark methods -- the mean method, naive method, and seasonal naive method -- were applied for comparison. The best-performing ARIMA model was then compared against these benchmark methods.
 
 First, we fit the proposed ARIMA models. The diagnostics plots suggested that ARIMA(4,1,4), ARIMA(7,1,7) and ARIMA (8,1,8) might be the better model, because some p values of the Ljung box test were insignificant. To formally determine the most appropriate model structure, we compared the candidate models using the criteria shown in @tbl-model-comparison. 
@@ -819,7 +822,7 @@ ggplot() +
 
 
 
-## 3.5 Forecast Future 2026 Data
+## 4.5 Forecast Future 2026 Data
 Using ARIMA(4,1,4), we forecast the next 30 days starting March 28, 2026. The predicted values appeared relatively flat, which is expected for ARIMA models over short period of time. Since future white noise terms are unknown, the forecasts tend to settle toward a constant, resulting in a smoother and less stochastic pattern compared to the real data, as shown in @fig-full-arima-forecast. Although this is a simple model, the forecasts are still useful for understanding the potential short-term behavior and overall trend of the market. Investors and analysts may use these forecasts as a reference for anticipating future movement patterns, and supporting short-term decision making.
 
 ```{r, include=FALSE}
@@ -859,7 +862,7 @@ points(forecast_df$Date, forecast_df$Price, col = "red")
 
 \newpage
 
-# 4 Conclusions
+# 5 Conclusions
 
 This project used stock price data from January 3, 2017 to March 27, 2026 to study stock price behavior and forecasting performance using ARIMA models and benchmark forecasting methods. The first part of the project investigated whether the emergence of AI, specifically following the launch of ChatGPT on November 30, 2022, had a meaningful impact on stock market. To examine this question, we used data before November 30, 2022 to forecast stock prices after this date. Several ARIMA models and three benchmark forecasting methods were proposed and evaluated. The results showed that the performance of the best performing ARIMA models was similar to that of the simpler benchmark methods. Overall, the models were able to forecast the post-AI period reasonably well using pre-AI data, suggesting that the introduction of AI did not produce a significant change in the stock price. Therefore, we used the full data frame for forecasting. 
 
@@ -867,7 +870,7 @@ In the second part, we used the full time frame from January 3, 2017 to March 27
 
 
 
-# 5 Limitations
+# 6 Limitations
 
 There are some potential limitations for the dataset. One of the limitations is that there's possibility for State Street to rebalance the stock composition over time, which means the dataset may not remain fully consistent throughout the study period. The companies in the XLK ETF are selected based on the GICS. However, the GICS structure is reviewed annually, meaning State Street need to adjust the XLK portfolio at least on a yearly base. This could reduce the reliability of comparing stock performance across different years and weaken the robustness of analysis.
 
@@ -875,7 +878,7 @@ Another limitation is the dependency of the dataset. In the data analysis, we no
 
 Also, AR, MA, ARMA are all models that are only a function of the time series itself. They do not include other important factors, such as government policy or economic policy changes. There are many other factors that affects the stock market that we did not incorporate, such as economic indicators and interest rates. Since stock market is influenced by many external variables, excluding these factors may limit the strength and forecasting accuracy of the models.
 
-# 6 Future Directions
+# 7 Future Directions
 
 To account for external factors that might affect the stock market, we could add these as predictors in our model. This can help us better estimate stock prices.
 
