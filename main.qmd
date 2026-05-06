@@ -49,23 +49,34 @@ get_arima_metrics <- function(model, x_train, x_test) {
 
 # 1 Introduction
 
-
 Artificial Intelligence (AI) has been a hot topic in recent years, with its wide applications in scientific discovery, advanced cybersecurity, and personalized AI agents. In the stock market, technology stocks have accounted for 32% of global equity returns and 40% of total U.S. equity market returns since 2010 (Goldman Sachs, 2024), playing a dominant role in modern financial markets. Large-cap firms, such as Apple and Microsoft, represent a substantial share of total market capitalization; consequently, their performance increasingly shapes the trajectory of major stock indices, including the S&P 500 and the NASDAQ Composite (Yahoo Finance). 
 
 A technological breakthrough is broadly defined as a significant and sudden advancement in science or engineering that introduces new capabilities, reshapes industries, and overcomes previous technical limitations (Sandle, 2025). The launch of ChatGPT was one of the first moments when the general public experienced the transformative potential of artificial intelligence in everyday life on a large scale. Therefore, in this report we consider the release of ChatGPT to represent a major technological breakthrough.
 
 The adoption of AI applications has reshaped market narratives surrounding technological growth and productivity (Amin et al., 2024). Given that technology companies are largely valued based on expectations of future innovation and scalability, breakthroughs can trigger revisions in investor sentiment, leading to movement in stock prices. 
 
-With the crucial role of technology stocks in the broader financial market and the rapid emergence of AI products, we want to investigate whether technological breakthroughs impact the technology sector stock market. Specifically, this report examines whether the release of ChatGPT corresponds to a statistically significant shift in the Technology Select Sector SPDR Fund (XLK) price dynamics from 2017 to 2026 using ARIMA and benchmark forecasting methods
+With the crucial role of technology stocks in the broader financial market and the rapid emergence of AI products, this report investigates whether technological breakthroughs affect the technology-sector stock market. The main research question is :
+
+- Whether the release of ChatGPT altered the forecastability of the Technology Select Sector SPDR Fund (XLK) from 2017 to 2026.
+
+Specifically, this report examines
+
+1) Whether pre-AI stock price data can effectively forecast post-AI XLK price behavior.
+
+2) Which forecasting model best predicts XLK price dynamics.
+
+The results suggest that pre-AI data could forecast the post-AI period reasonably well, and the best ARIMA models performed similarly to simple benchmark methods. Therefore, the release of ChatGPT did not produce a clearly significant shift in XLK price predictability within this study. For the full-period forecast, ARIMA(4,1,4) was selected as the preferred ARIMA model, but the mean and naive benchmark methods performed nearly as well.
 
 # 2 Background 
-Previous studies have suggested that major technological innovations can reshape stock market valuation and investor expectations. Laitner and Stolyarov argue that technological revolutions, such as the microprocessor revolution, may lead to market revaluation because new technologies can make existing physical and intangible capital less valuable while increasing expectations for future productivity (Laitner and Stolyarov, 2003). Their framework suggests that technological shocks may influence not only individual firms but also broader market dynamics and sector-wide valuation patterns. This framework provides theoretical support for our investigation of whether generative AI corresponds to a detectable shift in XLK price dynamics following the release of ChatGPT.
+Financial time series forecasting has long been important in quantitative finance because investors rely on forecasts for trading and portfolio decisions. Since stock prices are sequential and time-dependent, many studies model stock prices as time series processes to predict future movements. Among traditional forecasting approaches, the Autoregressive Integrated Moving Average (ARIMA) model is one of the most widely used methods because it can transform non-stationary financial data into stationary series and capture autocorrelation patterns.
 
-Breakthroughs in new technology also impact a firm's business model. For technology-centric companies in particular, launching a novel product often increases the company's net valuation (McKinsey, 2016). As several tech giants have launched flagship AI products, such as Gemini from Google and Claude from Anthropic, their market valuations and stock prices have shifted accordingly (Investing.com, 2026). The impact of a novel AI product seems significant since it can impact the company's valuation that the company does not even need to be publicly traded. The hard launch of ChatGPT in November 2022 significantly increased OpenAI's, a non-profit artificial intelligence research company, private valuation and attracted substantial investment, with its estimated worth skyrocketing from roughly \$20 billion to \$85.2 billion by 2026 (Barrientos, 2026).
+Previous studies have evaluated the effectiveness of ARIMA models in stock market prediction. Mondal et al. (2014) examined ARIMA forecasting performance across 56 Indian stocks from multiple sectors and found that ARIMA achieved relatively strong short-term forecasting accuracy, especially in the Information Technology sector. Their study also emphasized the importance of model selection using AICc criteria. However, prior research has also suggested that simple benchmark methods may perform similarly to more complex time series models. Kulkarni et al. (2020) compared ARIMA, Simple Moving Average (SMA), and Holt-Winters models and found that SMA produced the lowest prediction error for short-term stock forecasting. These findings suggest that stock prices may behave similarly to random walks, making it difficult for ARIMA models to substantially outperform simpler forecasting methods.
 
-Furthermore, the adoption of AI applications has also reshaped market narratives surrounding technological growth and productivity. Beyond the firms that are directly launching AI models, companies perceived as key beneficiaries of AI infrastructure, most notably the GPU manufacturing company NVIDIA Corporation, have also experienced significant revaluations (Morningstar, 2026). This shift suggests that innovation shocks may influence not only short-term prices but also the broader structural dynamics of the overall technology sector.
+Previous studies have also suggested that major technological innovations can reshape stock market valuation and investor expectations. Laitner and Stolyarov (2003) argue that technological revolutions may lead to market revaluation by increasing expectations for future productivity and altering sector-wide valuation dynamics. This framework provides theoretical support for investigating whether generative AI corresponds to a detectable shift in XLK price dynamics following the release of ChatGPT.
 
-Understanding whether such a technological breakthrough corresponds to a lasting change in market behavior is crucial for investors and policymakers. Persistent shifts in return patterns can affect risk assessment, portfolio allocation, and forecasting models in financial market analysis. Financial return series are time-dependent and often exhibit changes in volatility and growth dynamics. If the emergence of artificial intelligence has altered investor expectations, this effect may manifest as a structural break in the return-generating process.
+The emergence of generative AI has intensified market attention toward technology firms and AI-related infrastructure companies. The launch of ChatGPT in November 2022 significantly increased OpenAI’s valuation and accelerated investment in AI technologies. At the same time, firms associated with AI infrastructure, particularly NVIDIA, also experienced substantial market revaluations(Morningstar, 2026).
+
+Understanding whether such a technological breakthrough corresponds to a lasting change in market behavior is crucial for investors and policymakers. Persistent shifts in return patterns can affect risk assessment, portfolio allocation, and forecasting models in financial market analysis. Financial return series are time-dependent and often exhibit changes in volatility and growth dynamics. Applying time series forecasting methods allows us to evaluate whether the emergence of generative AI changed the predictability of technology-sector stock prices, provides a further insights for the shareholders. 
 
 
 # 3 Data
@@ -892,8 +903,7 @@ It is also possible to incorporate the method proposed by Campos-Martins (2024) 
 Finally, our research should follow a consistent process where we constantly refit the models as the stock market changes over time. Updating the model with new data can help us see whether there are any long-term effects or clear shifts in the data, especially as AI continues to develop and become more widely used.
 
 # Reference
-Amin, M. R. M., Asbi, A., Sivakumaran, V. M., Kim, J., & Septiarini, E. (2025). Artificial Intelligence (AI) adoption in marketing strategies: Navigating the present and shaping the future business landscape. Results in Engineering. 
-https://www.sciencedirect.com/science/article/pii/S2590291125007776
+Amin, M. R. M., Asbi, A., Sivakumaran, V. M., Kim, J., & Septiarini, E. (2025). Artificial intelligence (AI) adoption in marketing strategies: Navigating the present and shaping the future business landscape. Results in Engineering, 26, 105111. https://doi.org/10.1016/j.rineng.2025.105111
 
 Barrientos, A. (2026). OpenAI $85.2B valuation record fueled by ChatGPT. Yahoo Finance. https://finance.yahoo.com/sectors/technology/articles/openai-852b-valuation-record-chatgpt-145356819.html
 
@@ -901,13 +911,16 @@ Digital Journal. (2026). Ten technology breakthroughs to watch out for in 2026. 
 
 Investing.com. (2026). Coty’s perfume business takes another knock with David Beckham fragrance lawsuit. https://www.investing.com/news/stock-market-news/cotys-perfume-business-takes-another-knock-with-david-beckham-fragrance-lawsuit-4653620
 
-Laitner, J., & Stolyarov, D. (2003). Technological change and the stock market. The American Economic Review, 93(4), 1240–1267.
+Kulkarni, M., Jadhav, A., & Dhingra, D. (2020). Time series data analysis for stock market prediction. In Proceedings of the 3rd International Conference on Innovative Computing and Communication (ICICC-2020). SSRN. https://ssrn.com/abstract=3563111
+
+Laitner, J., & Stolyarov, D. (2003). Technological change and the stock market. The American Economic Review, 93(4), 1240–1267. https://doi.org/10.1257/000282803769206287
+
+Mondal, P., Shit, L., & Goswami, S. (2014). Study of effectiveness of time series modeling (ARIMA) in forecasting stock prices. International Journal of Computer Science, Engineering and Applications (IJCSEA), 4(2), 13–29. https://doi.org/10.5121/ijcsea.2014.4202
 
 Morningstar. (2026). Nvidia used to benefit from AI spending increases. So why did the stock just slide? https://www.morningstar.com/news/marketwatch/20260430238/nvidia-used-to-benefit-from-ai-spending-increases-so-why-did-the-stock-just-slide
 
 Nerac. (n.d.). Technology breakthrough definition. https://www.nerac.com/glossary/technology-breakthrough/
-
-Sofe Advisors. (n.d.). Technology company valuation methods: A complete guide. https://soferadvisors.com/insights/blog/technology-company-valuation-methods-a-complete-guide/
+Sofer Advisors. (n.d.). Technology company valuation methods: A complete guide. https://soferadvisors.com/insights/blog/technology-company-valuation-methods-a-complete-guide/
 
 State Street Global Advisors. (2026). Technology Select Sector SPDR Fund (XLK) fact sheet. https://www.ssga.com/library-content/products/factsheets/etfs/us/factsheet-us-en-xlk.pdf
 
