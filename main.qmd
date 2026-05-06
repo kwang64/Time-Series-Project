@@ -55,17 +55,18 @@ A technological breakthrough is broadly defined as a significant and sudden adva
 
 The adoption of AI applications has reshaped market narratives surrounding technological growth and productivity (Amin et al., 2024). Given that technology companies are largely valued based on expectations of future innovation and scalability, breakthroughs can trigger revisions in investor sentiment, leading to movement in stock prices. 
 
-With the crucial role of technology stocks in the broader financial market and the rapid emergence of AI products, this report investigates whether technological breakthroughs affect the technology-sector stock market. The main research question is :
+With the crucial role of technology stocks in the broader financial market and the rapid emergence of AI products, this report investigates whether technological breakthroughs affect the technology-sector stock market, specifically on the Technology Select Sector SPDR Fund (XLK) from 2017 to 2026. The main research questions are:
 
-- Whether the release of ChatGPT altered the forecastability of the Technology Select Sector SPDR Fund (XLK) from 2017 to 2026.
+- Did the release of ChatGPT altered the forecastability of the XLK stock prices or returns?
+
+- How well do ARIMA models forecast XLK compared with simple benchmark methods?
 
 Specifically, this report examines
 
 1) Whether pre-AI stock price data can effectively forecast post-AI XLK price behavior.
 
-2) Which forecasting model best predicts XLK price dynamics.
+2) Which model best predicts XLK price dynamics.
 
-The results suggest that pre-AI data could forecast the post-AI period reasonably well, and the best ARIMA models performed similarly to simple benchmark methods. Therefore, the release of ChatGPT did not produce a clearly significant shift in XLK price predictability within this study. For the full-period forecast, ARIMA(4,1,4) was selected as the preferred ARIMA model, but the mean and naive benchmark methods performed nearly as well.
 
 # 2 Background 
 Financial time series forecasting has long been important in quantitative finance because investors rely on forecasts for trading and portfolio decisions. Since stock prices are sequential and time-dependent, many studies model stock prices as time series processes to predict future movements. Among traditional forecasting approaches, the Autoregressive Integrated Moving Average (ARIMA) model is one of the most widely used methods because it can transform non-stationary financial data into stationary series and capture autocorrelation patterns.
@@ -357,7 +358,7 @@ pacf(na.omit(data$log_return), main="PACF of log return")
 ```{r, include=FALSE}
 adf.test(na.omit(data$log_return))
 ```
-Although, in @fig-logacfpacf, the ACF shows there still exists few autocorrelation coefficients outside the significance boundaries, the ADF test was conducted for a formal assessment. The test yielded a p-value of 0.01, providing strong empirical evidence to reject the null hypothesis of a unit root and confirming that the log return series is stationary.
+Although, in @fig-logacfpacf, the ACF shows there still exists few autocorrelation coefficients outside the significance boundaries, the ADF test was conducted for a formal assessment. The test yielded a p-value of 0.01, which rejects the null hypothesis of a unit root and confirms that the log return series is stationary.
 
 ## 4.3 Using Pre-AI Prices to Predict Post-AI Prices
  
@@ -834,7 +835,7 @@ ggplot() +
 
 
 ## 4.5 Forecast Future 2026 Data
-Using ARIMA(4,1,4), we forecast the next 30 days starting March 28, 2026. The predicted values appeared relatively flat, which is expected for ARIMA models over short period of time. Since future white noise terms are unknown, the forecasts tend to settle toward a constant, resulting in a smoother and less stochastic pattern compared to the real data, as shown in @fig-full-arima-forecast. Although this is a simple model, the forecasts are still useful for understanding the potential short-term behavior and overall trend of the market. Investors and analysts may use these forecasts as a reference for anticipating future movement patterns, and supporting short-term decision making.
+Using ARIMA(4,1,4), we forecast the stock price for the next 30 days starting March 28, 2026. The predicted values appeared relatively flat, which is expected for ARIMA models over short period of time. Since future white noise terms are unknown, the forecasts tend to settle toward a constant, resulting in a smoother and less stochastic pattern compared to the real data, as shown in @fig-full-arima-forecast. Although this is a simple model, the forecasts are still useful for understanding the potential short-term behavior and overall trend of the market. Investors and analysts may use these forecasts as a reference for anticipating future movement patterns, and supporting short-term decision making.
 
 ```{r, include=FALSE}
 forecasted <- sarima.for(ts(data$log_price), n.ahead = 30, p = 4, d = 1, q = 4, no.constant = TRUE)$pred
@@ -877,7 +878,7 @@ points(forecast_df$Date, forecast_df$Price, col = "red")
 
 This project used stock price data from January 3, 2017 to March 27, 2026 to study stock price behavior and forecasting performance using ARIMA models and benchmark forecasting methods. The first part of the project investigated whether the emergence of AI, specifically following the launch of ChatGPT on November 30, 2022, had a meaningful impact on stock market. To examine this question, we used data before November 30, 2022 to forecast stock prices after this date. Several ARIMA models and three benchmark forecasting methods were proposed and evaluated. The results showed that the performance of the best performing ARIMA models was similar to that of the simpler benchmark methods. Overall, the models were able to forecast the post-AI period reasonably well using pre-AI data, suggesting that the introduction of AI did not produce a significant change in the stock price. Therefore, we used the full data frame for forecasting. 
 
-In the second part, we used the full time frame from January 3, 2017 to March 27, 2026 to further evaluate forecasting performance. Multiple ARIMA models and benchmark methods were compared accuracy metrics. The results again indicated no substantial difference in predictive performance among the models. Among the ARIMA models, ARIMA(4,1,4) was selected as the preferred model based on model selection criteria, and it was used to forecast stock prices for the following 30 days.
+In the second part, we used the full time frame from January 3, 2017 to March 27, 2026 to further evaluate forecasting performance. Multiple ARIMA models and benchmark methods were compared accuracy metrics. The results again indicated no substantial difference in predictive performance among the models. Among the ARIMA models, ARIMA(4,1,4) was selected as the preferred model based on model selection criteria, and it was used to forecast stock prices for the following 30 days. The forecasting results were shown for understanding the potential short-term behavior. 
 
 
 
