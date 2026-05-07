@@ -475,10 +475,6 @@ part_results |> kable(digits=5)
 sarima(part, p=7, d=1, q=7, no.constant=TRUE)
 ```
 
-
-
-
-
 ```{r, include=FALSE}
 #adf.test(log_return_ts)
 ```
@@ -570,7 +566,7 @@ Furthermore, this suggests that AI have not yet contribute a significant impact 
 
 
 # 4.4 Comparing Models Over the Full Time Frame
-80% of data from January 3, 2017 to March 27, 2026 were used as the training set, and 20% of data were used for testing in building our models. Similar to section 3.3, ARIMA(1,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(7,1,7), and ARIMA(8,1,8) models were fitted. The best ARIMA model was determined using AIC, AICc, BIC, and log liklihood. In addition, three benchmark methods -- the mean method, naive method, and seasonal naive method -- were applied for comparison. The best-performing ARIMA model was then compared against these benchmark methods.
+80% of data from January 3, 2017 to March 27, 2026 were used as the training set, and 20% of data were used for testing in building our models. Similar to section 4.3, ARIMA(1,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(7,1,7), and ARIMA(8,1,8) models were fitted. The best ARIMA model was determined using AIC, AICc, BIC, and log likelihood. In addition, three benchmark methods -- the mean method, naive method, and seasonal naive method -- were applied for comparison. The best-performing ARIMA model was then compared against these benchmark methods.
 
 First, we fit the proposed ARIMA models. The diagnostics plots suggested that ARIMA(4,1,4), ARIMA(7,1,7) and ARIMA (8,1,8) might be the better model, because some p values of the Ljung box test were insignificant. To formally determine the most appropriate model structure, we compared the candidate models using the criteria shown in @tbl-model-comparison. 
 ```{r, include=FALSE}
@@ -666,21 +662,6 @@ x_mean2 <- rep(mean(x_train2), length(x_test2)) #mean
 x_naive2 <- rep(tail(x_train2,1), length(x_test2)) #naive
 x_seasonal2 <- rep(c(tail(x_train2, 7)), length(x_test2)) #seasonal
 
-# # forecast errors
-# mean_errors2 <- x_test2 - x_mean2
-# naive_errors2 <- x_test2 - x_naive2
-# seasonal_errors2 <- x_test2 - x_seasonal2
-# 
-# # MAE(Scale-dependent Errors)
-# mean_MAE2 <- mean(abs(mean_errors2), na.rm = TRUE)
-# naive_MAE2 <- mean(abs(naive_errors2), na.rm = TRUE)
-# seasonal_MAE2 <- mean(abs(seasonal_errors2), na.rm = TRUE)
-# 
-# #RMSE
-# mean_RMSE2 <- sqrt(mean(mean_errors2^2, na.rm = TRUE))
-# naive_RMSE2 <- sqrt(mean(naive_errors2^2, na.rm = TRUE))
-# seasonal_RMSE2 <- sqrt(mean(seasonal_errors2^2, na.rm = TRUE))
-
 bench_full <- rbind(
   Mean     = get_scaled_metrics(x_test2 - x_mean2,     x_train2),
   Naive    = get_scaled_metrics(x_test2 - x_naive2,    x_train2),
@@ -705,43 +686,12 @@ bench_full <- rbind(
 # seasonal_MAPE <- mean(abs(seasonal_p_error), na.rm = TRUE)
 ```
 
-```{r, include=FALSE}
-# n_train <- length(x_train2)
-# train_diffs <- abs(diff(as.numeric(x_train2), lag = 1))
-# nonseasonal_scale <- mean(train_diffs)
-# nonseasonal_scale_sq <- mean(train_diffs^2)
-# 
-# # for(i in 2:n){
-# #   train_MAE <- abs(x_train2[i] - x_train2[i-1])
-# # }
-# # nonseasonal_scale <- sum(train_MAE)/(n-1)
-# # nonseasonal_scale_sq <- sum(train_MAE^2)/(n-1)
-# 
-# mean_MASE <- mean(abs(mean_errors2/nonseasonal_scale), na.rm = TRUE)
-# naive_MASE <- mean(abs(naive_errors2/nonseasonal_scale), na.rm = TRUE)
-# seasonal_MASE <- mean(abs(seasonal_errors2/nonseasonal_scale), na.rm = TRUE)
-# 
-# mean_MASSE <- sqrt(mean(mean_errors2^2/nonseasonal_scale_sq, na.rm = TRUE))
-# naive_MASSE <- sqrt(mean(naive_errors2^2/nonseasonal_scale_sq, na.rm = TRUE))
-# seasonal_MASSE <- sqrt(mean(seasonal_errors2^2/nonseasonal_scale_sq, na.rm = TRUE))
-```
-
 ```{r}
 #| label: tbl-forecast_errors_full
 #| eval: true
 #| echo: false
 #| message: false
 #| warning: false
-
-# forecast_table <- data.frame(
-#   Method = c("Mean", "Naive", "Seasonal", "ARIMA(4,1,4)"),
-#   MAE = c(mean_MAE2, naive_MAE2, seasonal_MAE2, arimaMAE),
-#   RMSE = c(mean_RMSE2, naive_RMSE2, seasonal_RMSE2, arimaRMSE),
-#   MASE = c(mean_MASE, naive_MASE, seasonal_MASE, arimaMASE), #xs was meanMASE
-#   MASSE = c(mean_MASSE, naive_MASSE, seasonal_MASSE, arimaMASSE)
-# )
-#
-# kable(forecast_table, digits = 5, caption = "Forecast Errors-full model")
 arima414_full <- full_results[rownames(full_results) == "ARIMA(4,1,4)", ]
 
 forecast_table_full <- rbind(bench_full, arima414_full)
@@ -749,8 +699,6 @@ kable(forecast_table_full, digits=5, caption="Forecast Errors - Full Model")
 ```
 
 @tbl-forecast_errors_full shows the naive method has the lowest MAE while the mean method has the lowest RMSE. MAPE (Mean Absolute Percentage Error) is a percentage-based error metric that scales forecast errors relative to the actual values. However, MAPE(Mean Absolute Percentage Error) is not included in this comparison because the log return data fluctuates around zero, where some small values closer to zero make MAPE enormous and not a good parameter to look at. MASE (Mean Absolute Scaled Error) and MASSE (Root Mean Squared Scaled Error) are scaled error metrics, and they works by scaling errors based on the training MAE from a simple forecast method. This makes them stable because the denominator is a fixed constant derived from the training data, providing a more informative alternative when MAPE fails to give meaningful results. Based on the lowest MASE and RMSSE values, the mean method and ARIMA (4,1,4) performs best overall. Again, the simple models performed as good as ARIMA. The differences between models were extremely small. ARIMA model may not be needed to do forecasting in this case.
-
-
 
 ```{r}
 #| label: fig-qqhist
@@ -832,8 +780,6 @@ ggplot() +
   labs(title="ARIMA(4,1,4) Forecast vs Test Set", x="Date", y="Log Return", color="") + theme(legend.position=c(1,1), legend.justification=c(1,1))
 ```
 
-
-
 ## 4.5 Forecast Future 2026 Data
 Using ARIMA(4,1,4), we forecast the stock price for the next 30 days starting March 28, 2026. The predicted values appeared relatively flat, which is expected for ARIMA models over short period of time. Since future white noise terms are unknown, the forecasts tend to settle toward a constant, resulting in a smoother and less stochastic pattern compared to the real data, as shown in @fig-full-arima-forecast. Although this is a simple model, the forecasts are still useful for understanding the potential short-term behavior and overall trend of the market. Investors and analysts may use these forecasts as a reference for anticipating future movement patterns, and supporting short-term decision making.
 
@@ -895,11 +841,11 @@ Finally, stock market returns are inherently noisy and difficult to predict. Fin
 
 # 7 Future Directions
 
-To account for external factors that might affect the stock market, we could add these as predictors in our model. This can help us better estimate stock prices.
+Future research could improve this study by incorporating external factors that may influence stock market behavior as additional predictors in the forecasting models. Variables such as interest rates, inflation, macroeconomic conditions, or AI-related investment activity may help explain movements in technology-sector stock prices beyond the information contained in historical returns. Including these factors could improve model performance and provide a more complete understanding of how technological developments affect financial markets.
+
+Another direction for future research involves improving the treatment of stationarity in the regression-based models. Although we fit a regression model to account for trends in the data, the resulting series may still not fully satisfy stationarity assumptions under standard significance levels of the Augmented Dickey–Fuller (ADF) test. However, under a less restrictive significance threshold, the detrended series may pass the ADF test, suggesting that the degree of nonstationarity may be relatively weak rather than severe. Future studies could explore alternative approaches to modeling nonlinear trends, such as fitting cubic or higher-order polynomial relationships instead of simple linear trends. Researchers could also apply additional differencing after detrending the series in order to further stabilize the mean and improve model assumptions. Comparing these alternative preprocessing methods may provide better insight into the underlying structure of technology-sector stock returns and improve forecasting performance.
 
 Although we have not been able to conclude AI has significant impact on the behavior of technology sector stock returns, it is still useful to estimate how sensitive technology sector stock price comparing to the broader market indices or other sectors. We might expect the technology sector to show higher volatility and respond more to growth expectations. In future studies, we can fit and compare separate models for different market segments, such as the S&P 500 and individual sectors like healthcare or financials, to better understand these differences.
-
-It is also possible to incorporate the method proposed by Campos-Martins (2024) with our model. After identifying notable development by AI companies, we can adjust our predictors to improve accuracy. For example, we could include an indicator variable that captures major AI events or achievements. This would allow the model to account for changes over time driven by new innovations, instead of relying only on fixed predictors.
 
 Finally, our research should follow a consistent process where we constantly refit the models as the stock market changes over time. Updating the model with new data can help us see whether there are any long-term effects or clear shifts in the data, especially as AI continues to develop and become more widely used.
 
