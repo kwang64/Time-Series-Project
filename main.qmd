@@ -75,7 +75,7 @@ Previous studies have evaluated the effectiveness of ARIMA models in stock marke
 
 Previous studies have also suggested that major technological innovations can reshape stock market valuation and investor expectations. Laitner and Stolyarov (2003) argue that technological revolutions may lead to market revaluation by increasing expectations for future productivity and altering sector-wide valuation dynamics. This framework provides theoretical support for investigating whether generative AI corresponds to a detectable shift in XLK price dynamics following the release of ChatGPT.
 
-The emergence of generative AI has intensified market attention toward technology firms and AI-related infrastructure companies. The launch of ChatGPT in November 2022 significantly increased OpenAI’s valuation and accelerated investment in AI technologies. At the same time, firms associated with AI infrastructure, particularly NVIDIA, also experienced substantial market revaluations(Morningstar, 2026).
+The emergence of generative AI has brought market attention toward technology firms and AI-related infrastructure companies. The launch of ChatGPT in November 2022 significantly increased OpenAI’s valuation and accelerated investment in AI technologies. At the same time, firms associated with AI infrastructure, particularly NVIDIA, also experienced substantial market revaluations (Morningstar, 2026).
 
 Understanding whether such a technological breakthrough corresponds to a lasting change in market behavior is crucial for investors and policymakers. Persistent shifts in return patterns can affect risk assessment, portfolio allocation, and forecasting models in financial market analysis. Financial return series are time-dependent and often exhibit changes in volatility and growth dynamics. Applying time series forecasting methods allows us to evaluate whether the emergence of generative AI changed the predictability of technology-sector stock prices, provides a further insights for the shareholders. 
 
@@ -368,7 +368,7 @@ First, we fitted ARIMA models using the historical price data from January 3, 20
 
 We then applied three "benchmark" forecasting methods: the mean method, the naive method, and the seasonal naive method. Mean method forecasts all future values as equal to the average of the training set. Naive method set all forecast values to be the value of the last observation of the historical data. Seasonal naive method set each forecast to be equal to the last observed value from the same season. In this case, we tested for weekly seasonality using this method. 
 
-Finally, we compared the performance of the ARIMA model and the benchmark methods using point comparison metrics like MAE, RMSE, MASE and MASSE.
+Finally, we compared the performance of the ARIMA model and the benchmark methods using point comparison metrics like MAE (Mean Absolute Error), RMSE(Root Mean Squared Error), MASE(Mean Absolute Scaled Error) and MASSE (Root Mean Squared Scaled Error).
 
 
 ```{r, include=FALSE}
@@ -381,7 +381,7 @@ pacf(diff(log(before_data$Price)))
 
 Using the ACF and PACF plots, we can determine the appropriate order of the ARIMA model. According to @fig-logacfpacf, the ACF gradually tails off, suggesting the presence of autoregressive behavior. According to the PACF, there are strong spikes at lags 2, 4, 7, and 8, and several other significant lags. Based on these patterns, ARIMA(1,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(6,1,6), ARIMA(7,1,7), and ARIMA(8,1,8) models were fitted to the log price data to capture the time series.
 
-The p values for Ljung-Box Statistic plots indicate that ARIMA(1,1,1) and ARIMA(2,1,2) are not good fits, because p values are significant for all lags. ACF plots for ARIMA (4,1,4), ARIMA(7,1,7), and ARIMA (8,1,8) looks stationary, but QQ plots show the points are deviated from the reference line, meaning the normality condition is not met. To determine which model performs the best, we compare the model AIC, AICc, BIC, and log likelihood values.
+The p values for Ljung-Box Statistic plots indicate that ARIMA(1,1,1) and ARIMA(2,1,2) are not good fits, because p values are significant for all lags. ACF plots for ARIMA (4,1,4), ARIMA(7,1,7), and ARIMA (8,1,8) looks stationary, but QQ plots show the points are deviated from the reference line, meaning the normality condition is not met. To determine which model performs the best, we compared the model AIC, AICc, BIC, and log likelihood values.
 
 ```{r, include=FALSE}
 #| eval: true
@@ -423,7 +423,7 @@ part_loglik <- c(
 )
 part_results <- cbind(
   part_ICs,
-  "Log Likelihood" = part_loglik
+  "logLik" = part_loglik
 )
 rownames(part_results) <- c("ARIMA(1,1,1)", "ARIMA(2,1,2)","ARIMA(4,1,4)", "ARIMA(6,1,6)", "ARIMA(7,1,7)", "ARIMA(8,1,8)")
 
@@ -560,15 +560,15 @@ forecast_table_part <- rbind(bench_part, arima717_part)
 kable(forecast_table_part, digits=5, caption="Forecast Errors")
 ```
 
-According to @tbl-forecast_errors, MAE (Mean Absolute Error) and RMSE (Root Mean Squared Error), which measure the difference between actual and predicted values, are small for the mean method but also for naive and ARIMA models. Hence, a simple model like Mean method can effectively predict the data following the cutoff date using data prior to November 30, 2022. We assumed ARIMA would do a better job, because it's a more comprehensive model. But our results showed that simple model can be powerful and was good enough for this prediction.
+According to @tbl-forecast_errors, MAE and RMSE, which measure the difference between actual and predicted values, are small for the mean method but also for naive and ARIMA models. Hence, a simple model like Mean method can effectively predict the data following the cutoff date using data prior to November 30, 2022. We assumed ARIMA would do a better job, because it's a more comprehensive model. But our results showed that simple model can be powerful and was good enough for this prediction.
 
-Furthermore, this suggests that AI have not yet contribute a significant impact in the stock market, at least in terms of predictability using our proposed models. As a result, we will use the entire time frame, allocating 80% for training and 20% for testing, to build a forecast model for predicting prices in 2026.
+Furthermore, this suggests that AI has not yet contribute a significant impact in the stock market, at least using our proposed models. As a result, we will use the entire time frame, allocating 80% for training and 20% for testing, to build a forecast model for predicting prices in 2026.
 
 
 # 4.4 Comparing Models Over the Full Time Frame
 80% of data from January 3, 2017 to March 27, 2026 were used as the training set, and 20% of data were used for testing in building our models. Similar to section 4.3, ARIMA(1,1,1), ARIMA(2,1,2), ARIMA(4,1,4), ARIMA(7,1,7), and ARIMA(8,1,8) models were fitted. The best ARIMA model was determined using AIC, AICc, BIC, and log likelihood. In addition, three benchmark methods -- the mean method, naive method, and seasonal naive method -- were applied for comparison. The best-performing ARIMA model was then compared against these benchmark methods.
 
-First, we fit the proposed ARIMA models. The diagnostics plots suggested that ARIMA(4,1,4), ARIMA(7,1,7) and ARIMA (8,1,8) might be the better model, because some p values of the Ljung box test were insignificant. To formally determine the most appropriate model structure, we compared the candidate models using the criteria shown in @tbl-model-comparison. 
+First, we fit the proposed ARIMA models. The diagnostics plots suggested that ARIMA(4,1,4), ARIMA(7,1,7) and ARIMA (8,1,8) might be the better model, because some p values of the Ljung box test were significant. To formally determine the most appropriate model structure, we compared the candidate models using the criteria shown in @tbl-model-comparison. 
 ```{r, include=FALSE}
 #| eval: true
 #| echo: false
@@ -635,7 +635,7 @@ full_results <- do.call(rbind, lapply(forecast_models_full, get_arima_metrics, x
 full_results |> kable(digits=5)
 ```
 
-Among the candidate models, ARIMA(4,1,4) was selected as the best fitting model, as it achieved the lowest AIC, AICc, and BIC values. While ARIMA(7,1,7) produced a very similar AIC, its notably higher BIC indicates that the additional parameters are not justified, making ARIMA(4,1,4) the preferred specification.
+Among the candidate models, ARIMA(4,1,4) was selected as the best fitting model, as it achieved the lowest AIC, AICc, and BIC values. While ARIMA(7,1,7) produced a very similar AIC, its higher BIC indicates that the additional parameters are not justified, making ARIMA(4,1,4) the preferred specification.
 
 ```{r}
 #| eval: true
@@ -698,7 +698,7 @@ forecast_table_full <- rbind(bench_full, arima414_full)
 kable(forecast_table_full, digits=5, caption="Forecast Errors - Full Model")
 ```
 
-@tbl-forecast_errors_full shows the naive method has the lowest MAE while the mean method has the lowest RMSE. MAPE (Mean Absolute Percentage Error) is a percentage-based error metric that scales forecast errors relative to the actual values. However, MAPE(Mean Absolute Percentage Error) is not included in this comparison because the log return data fluctuates around zero, where some small values closer to zero make MAPE enormous and not a good parameter to look at. MASE (Mean Absolute Scaled Error) and MASSE (Root Mean Squared Scaled Error) are scaled error metrics, and they works by scaling errors based on the training MAE from a simple forecast method. This makes them stable because the denominator is a fixed constant derived from the training data, providing a more informative alternative when MAPE fails to give meaningful results. Based on the lowest MASE and RMSSE values, the mean method and ARIMA (4,1,4) performs best overall. Again, the simple models performed as good as ARIMA. The differences between models were extremely small. ARIMA model may not be needed to do forecasting in this case.
+@tbl-forecast_errors_full shows the naive method has the lowest MAE while the mean method has the lowest RMSE. MAPE (Mean Absolute Percentage Error) is a percentage-based error metric that scales forecast errors relative to the actual values. However, MAPE is not included in this comparison because the log return data fluctuates around zero, where some small values closer to zero make MAPE enormous and not a good parameter to look at. MASE and MASSE are scaled error metrics, and they works by scaling errors based on the training MAE from a simple forecast method. This makes them stable because the denominator is a fixed constant derived from the training data, providing a more informative alternative when MAPE fails to give meaningful results. Based on the lowest MASE and RMSSE values, the mean method and ARIMA (4,1,4) performs best overall. Again, the simple models performed as good as ARIMA. The differences between models were extremely small. ARIMA models may not be needed to do forecasting in this case.
 
 ```{r}
 #| label: fig-qqhist
@@ -710,7 +710,7 @@ kable(forecast_table_full, digits=5, caption="Forecast Errors - Full Model")
 par(mfrow = c(1,2))
 qqnorm(log_return_ts, main = "QQ plot")
 
-hist(log_return_ts, main = "histogram")
+hist(log_return_ts, main = "histogram", xlab = "Log Return")
 ```
 
 Next, we construct a prediction interval for the mean method forecast model and ARIMA(4,1,4). In @fig-qqhist, while the histogram suggests the residuals are approximately normally distributed, the QQ-plot indicates that the log returns deviate from normality, violating classic assumptions. Despite this, @fig-full-mean-prediction-int shows that the prediction interval successfully captures all observations in the test set, suggesting the interval is functioning as intended. However, the interval is extremely wide, reflecting high uncertainty in the forecasts. This indicates that while the mean method provides valid coverage, it offers little practical predictive power for long-term returns.
@@ -822,7 +822,7 @@ points(forecast_df$Date, forecast_df$Price, col = "red")
 
 # 5 Conclusions
 
-This project used stock price data from January 3, 2017 to March 27, 2026 to study stock price behavior and forecasting performance using ARIMA models and benchmark forecasting methods. The first part of the project investigated whether the emergence of AI, specifically following the launch of ChatGPT on November 30, 2022, had a meaningful impact on stock market. To examine this question, we used data before November 30, 2022 to forecast stock prices after this date. Several ARIMA models and three benchmark forecasting methods were proposed and evaluated. The results showed that the performance of the best performing ARIMA models was similar to that of the simpler benchmark methods. Overall, the models were able to forecast the post-AI period reasonably well using pre-AI data, suggesting that the introduction of AI did not produce a significant change in the stock price. Therefore, we used the full data frame for forecasting. 
+This project used stock price data from January 3, 2017 to March 27, 2026 to study stock price behavior and forecasting performance using ARIMA models and benchmark forecasting methods. The first part of the project investigated whether the emergence of AI, specifically following the launch of ChatGPT on November 30, 2022, had a meaningful impact on stock market. To examine this question, we used data before November 30, 2022 to forecast stock prices after this date. Several ARIMA models and three benchmark forecasting methods were proposed and evaluated. The results showed that the performance of the best performing ARIMA models was similar to that of the simpler benchmark methods. Overall, the models were able to forecast the post AI period reasonably well using pre AI data, suggesting that the introduction of AI did not produce a significant change in the stock price. Therefore, we used the full data frame for forecasting. 
 
 In the second part, we used the full time frame from January 3, 2017 to March 27, 2026 to further evaluate forecasting performance. Multiple ARIMA models and benchmark methods were compared accuracy metrics. The results again indicated no substantial difference in predictive performance among the models. Among the ARIMA models, ARIMA(4,1,4) was selected as the preferred model based on model selection criteria, and it was used to forecast stock prices for the following 30 days. The forecasting results were shown for understanding the potential short-term behavior. 
 
@@ -843,7 +843,7 @@ Finally, stock market returns are inherently noisy and difficult to predict. Fin
 
 Future research could incorporate external factors that may influence stock market behavior as additional predictors in the forecasting models. Variables such as interest rates, inflation, macroeconomic conditions, or AI-related investment activity may help explain movements in technology-sector stock prices beyond the information contained in historical returns. Including these factors could improve model performance and provide a more complete understanding of how technological developments affect financial markets.
 
-Another direction involves improving the problem with stationarity in the regression-based models. Although we fit a regression model to account for trends in the data, the data may still not fully satisfy the stationarity assumptions under the ADF test. But under a less restrictive significance threshold, the detrended series may pass the ADF test. Future studies could explore alternative approaches to model nonlinear trends, such as fitting cubic or higher-order polynomial relationships instead of simple linear trends. We could also apply additional differencing after detrending the series in order to further stabilize the mean and improve model assumptions. Comparing these alternative methods may provide better insight into the underlying structure of technology-sector stock returns and improve forecasting performance.
+We fit a regression model to account for trends in the data, but the data may still not fully satisfy the assumptions under the ADF test. However, under a less restrictive significance threshold, the detrended series may pass the ADF test, and we could perform ARMA model analysis on them. Future studies could explore alternative approaches to model nonlinear trends, such as fitting cubic regression. We could also apply additional differencing after detrending the series.
 
 Although we have not been able to conclude AI has significant impact on the behavior of technology sector stock returns, it is still useful to estimate how sensitive technology sector stock price comparing to the broader market and other sectors. We might expect the technology sector to show higher volatility and respond more to growth expectations. In future studies, we can fit and compare separate models for different market segments, such as the S&P 500 and individual sectors like healthcare or financials, to better understand these differences.
 
